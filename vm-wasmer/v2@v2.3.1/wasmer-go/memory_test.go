@@ -1,6 +1,7 @@
 package wasmer
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -34,10 +35,15 @@ func TestMemorySize(t *testing.T) {
 	assert.NoError(t, err)
 
 	memory := NewMemory(store, NewMemoryType(limits))
+	temp1 := memory.Data()
+	temp2 := memory
 	size := memory.Size()
 	assert.Equal(t, size, Pages(1))
 
 	success := memory.Grow(Pages(2))
+	temp3 := memory.Data()
+	temp4 := memory
+	fmt.Printf(string(temp1), temp2, string(temp3), temp4)
 	assert.True(t, success)
 
 	size = memory.Size()

@@ -29,7 +29,7 @@ const (
 	EvmMaxStackDepth    = 1024
 
 	ContractSdkSignalResultSuccess = 0 // sdk call chain method success result
-	ContractSdkSignalResultFail    = 1 // sdk call chain method success result
+	ContractSdkSignalResultFail    = 1 // sdk call chain method failed result
 
 	DefaultMaxStateKeyLen = 1024                // key & name for contract state length
 	DefaultStateRegex     = "^[a-zA-Z0-9._-]+$" // key & name for contract state regex
@@ -87,7 +87,11 @@ const (
 	ContractMethodGetState    = "GetState"
 	ContractMethodPutState    = "PutState"
 	ContractMethodDeleteState = "DeleteState"
-
+	ContractMethodGetBatchStateLen = "GetBatchStateLen"
+	ContractMethodGetBatchState    = "GetBatchState"
+	//address
+	ContractMethodSenderAddress = "GetSenderAddress"
+	ContractMethodSenderAddressLen = "GetSenderAddressLen"
 	// kv iterator author:whang1234
 
 	ContractMethodKvIterator        = "KvIterator"
@@ -97,12 +101,17 @@ const (
 	ContractMethodKvIteratorNext    = "KvIteratorNext"
 	ContractMethodKvIteratorClose   = "KvIteratorClose"
 
+
 	// keyHistoryKvIterator method
 	ContractHistoryKvIterator        = "HistoryKvIterator"
 	ContractHistoryKvIteratorHasNext = "HistoryKvIterHasNext"
 	ContractHistoryKvIteratorNextLen = "HistoryKvIterNextLen"
 	ContractHistoryKvIteratorNext    = "HistoryKvIterNext"
 	ContractHistoryKvIteratorClose   = "HistoryKvIterClose"
+
+
+	//lib
+	ContractMethodSha256 = "Sha256"
 	// sql
 
 	ContractMethodExecuteQuery       = "ExecuteQuery"
@@ -136,6 +145,12 @@ const (
 	BulletProofsOpTypePedersenSubCommitment = "PedersenSubCommitment"
 	BulletProofsOpTypePedersenMulNum        = "PedersenMulNum"
 	BulletProofsVerify                      = "BulletproofsVerify"
+
+	//Log level
+	DebugLevel            = -1
+	InfoLevel             = 0
+	WarnLevel             = 1
+	ErrorLevel            = 2
 )
 
 var (
@@ -286,6 +301,12 @@ type Wacsi interface {
 	RSNext(requestBody []byte, txSimContext TxSimContext, memory []byte, data []byte,
 		isLen bool) ([]byte, error)
 	RSClose(requestBody []byte, txSimContext TxSimContext, memory []byte) error
+	Sha256(requestBody []byte, contractName string, memory []byte) ([]byte, error)
+	NativeSha256(hashInput []byte) ([32]byte)
+	GetSenderAddress(requestBody []byte, contractName string, txSimContext TxSimContext, memory []byte,
+		data []byte, isLen bool) ([]byte, error)
+	GetBatchState(requestBody []byte, contractName string, txSimContext TxSimContext, memory []byte,
+		data []byte, isLen bool) ([]byte, error)
 }
 
 // GetKeyStr get state key from string

@@ -31,6 +31,35 @@ func (s *WaciInstance) getStateCore(isLen bool) int32 {
 	return protocol.ContractSdkSignalResultSuccess
 }
 
+// GetBatchStateLen get batch state length from chain
+func (s *WaciInstance) GetBatchStateLen() int32 {
+	return s.getBatchStateCore(true)
+}
+
+// GetBatchState get state from chain
+func (s *WaciInstance) GetBatchState() int32 {
+	return s.getBatchStateCore(false)
+}
+
+func (s *WaciInstance) getBatchStateCore(isLen bool) int32 {
+	data, err := wacsi.GetBatchState(s.RequestBody, s.Sc.Contract.Name, s.Sc.TxSimContext, s.Memory, s.Sc.GetStateCache, isLen)
+	s.Sc.GetStateCache = data // reset _data
+	if err != nil {
+		s.recordMsg(err.Error())
+		return protocol.ContractSdkSignalResultFail
+	}
+	return protocol.ContractSdkSignalResultSuccess
+}
+
+func (s *WaciInstance) Sha256() int32 {
+	_, err := wacsi.Sha256(s.RequestBody, s.Sc.Contract.Name, s.Memory)
+	if err != nil {
+		s.recordMsg(err.Error())
+		return protocol.ContractSdkSignalResultFail
+	}
+	return protocol.ContractSdkSignalResultSuccess
+}
+
 // PutState put state to chain
 func (s *WaciInstance) PutState() int32 {
 	err := wacsi.PutState(s.RequestBody, s.Sc.Contract.Name, s.Sc.TxSimContext)

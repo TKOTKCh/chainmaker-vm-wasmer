@@ -145,6 +145,127 @@ func getMethodParams(ContractName, contractMethod string) string {
 			Params = "from:8acfaca5eeec9f6f7c23c4ffac969b86f27799b0||to:818fac1ac51525aeedf619a9a339b95854930159||tokenId:11111111111111111111111||metadata:http://chainmaker.org.cn/"
 		}
 	}
+	if ContractName == "enc_data" || ContractName == "enc_data_modify" { // 比如你的合约名字叫 enc_contract
+		if contractMethod == "enc_data" {
+			Params = `data_key:dataKey||data_value:dataValue||enc_key:encKey||authorized_person:-----BEGIN CERTIFICATE-----
+MIICeDCCAh6gAwIBAgIDDmp3MAoGCCqGSM49BAMCMIGKMQswCQYDVQQGEwJDTjEQ
+MA4GA1UECBMHQmVpamluZzEQMA4GA1UEBxMHQmVpamluZzEfMB0GA1UEChMWd3gt
+b3JnMS5jaGFpbm1ha2VyLm9yZzESMBAGA1UECxMJcm9vdC1jZXJ0MSIwIAYDVQQD
+ExljYS53eC1vcmcxLmNoYWlubWFrZXIub3JnMB4XDTI1MDQxODE1NDQyOVoXDTMw
+MDQxNzE1NDQyOVowgZExCzAJBgNVBAYTAkNOMRAwDgYDVQQIEwdCZWlqaW5nMRAw
+DgYDVQQHEwdCZWlqaW5nMR8wHQYDVQQKExZ3eC1vcmcxLmNoYWlubWFrZXIub3Jn
+MQ8wDQYDVQQLEwZjb21tb24xLDAqBgNVBAMTI2NvbW1vbjEuc2lnbi53eC1vcmcx
+LmNoYWlubWFrZXIub3JnMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEn4ZMa251
+acwZkmZQ/HBWGyy1hMr40ChHJ29aNvlCp9xUBjl3SEema3Zl8J33iXv9BNGyKH1/
+7p+yHYj2ougY2KNqMGgwDgYDVR0PAQH/BAQDAgbAMCkGA1UdDgQiBCCsMh3Xbs+H
+qbb7iYyi3G2RhZG0+l8GmYPa/i7NSkIxcDArBgNVHSMEJDAigCDStB+0gbNWFT1p
+iPW8+XzJ+vS0m3JZ1gKYSUESt7n/pzAKBggqhkjOPQQDAgNIADBFAiAG3fYB1HEu
+Gi7aUUNBIOizWBCtOuWWvmR5FMVSuuUYdAIhALqbClSD9Kt2gYwYucCE7iPajc3H
+wyi1e7ZVkH5vjHP8
+-----END CERTIFICATE-----
+`
+		}
+		if contractMethod == "enc_auth" {
+			Params = `data_key:dataKey||enc_key:encKey||authorized_person:-----BEGIN CERTIFICATE-----
+MIICfjCCAiSgAwIBAgIDCgn6MAoGCCqGSM49BAMCMIGKMQswCQYDVQQGEwJDTjEQ
+MA4GA1UECBMHQmVpamluZzEQMA4GA1UEBxMHQmVpamluZzEfMB0GA1UEChMWd3gt
+b3JnMS5jaGFpbm1ha2VyLm9yZzESMBAGA1UECxMJcm9vdC1jZXJ0MSIwIAYDVQQD
+ExljYS53eC1vcmcxLmNoYWlubWFrZXIub3JnMB4XDTI1MDQxODE1NDQyOVoXDTMw
+MDQxNzE1NDQyOVowgZcxCzAJBgNVBAYTAkNOMRAwDgYDVQQIEwdCZWlqaW5nMRAw
+DgYDVQQHEwdCZWlqaW5nMR8wHQYDVQQKExZ3eC1vcmcxLmNoYWlubWFrZXIub3Jn
+MRIwEAYDVQQLEwljb25zZW5zdXMxLzAtBgNVBAMTJmNvbnNlbnN1czEuc2lnbi53
+eC1vcmcxLmNoYWlubWFrZXIub3JnMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE
+XJBsVjVS5zcdQk2RhdA7eRs1DXdVq8xXRCD8G9CQ+YoDp/3bWLTBj7nw2ZYQHdxq
+Bp1iPP0tIbv4S/LAw1WbCqNqMGgwDgYDVR0PAQH/BAQDAgbAMCkGA1UdDgQiBCB0
+oajU1EwCPAWpcyBwnuaUUo98H4W75/0IyqmbvrXuEDArBgNVHSMEJDAigCDStB+0
+gbNWFT1piPW8+XzJ+vS0m3JZ1gKYSUESt7n/pzAKBggqhkjOPQQDAgNIADBFAiEA
+zQIb4bTapNnTqbEyr0B2VahFunoFThRZrZG1PXSicTUCIBk3x7Z/PRR9Q/agNuJI
+NaH1gyFpD5XW1nlTQa4xdrML
+-----END CERTIFICATE-----||authorizer:-----BEGIN CERTIFICATE-----
+MIICeDCCAh6gAwIBAgIDDmp3MAoGCCqGSM49BAMCMIGKMQswCQYDVQQGEwJDTjEQ
+MA4GA1UECBMHQmVpamluZzEQMA4GA1UEBxMHQmVpamluZzEfMB0GA1UEChMWd3gt
+b3JnMS5jaGFpbm1ha2VyLm9yZzESMBAGA1UECxMJcm9vdC1jZXJ0MSIwIAYDVQQD
+ExljYS53eC1vcmcxLmNoYWlubWFrZXIub3JnMB4XDTI1MDQxODE1NDQyOVoXDTMw
+MDQxNzE1NDQyOVowgZExCzAJBgNVBAYTAkNOMRAwDgYDVQQIEwdCZWlqaW5nMRAw
+DgYDVQQHEwdCZWlqaW5nMR8wHQYDVQQKExZ3eC1vcmcxLmNoYWlubWFrZXIub3Jn
+MQ8wDQYDVQQLEwZjb21tb24xLDAqBgNVBAMTI2NvbW1vbjEuc2lnbi53eC1vcmcx
+LmNoYWlubWFrZXIub3JnMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEn4ZMa251
+acwZkmZQ/HBWGyy1hMr40ChHJ29aNvlCp9xUBjl3SEema3Zl8J33iXv9BNGyKH1/
+7p+yHYj2ougY2KNqMGgwDgYDVR0PAQH/BAQDAgbAMCkGA1UdDgQiBCCsMh3Xbs+H
+qbb7iYyi3G2RhZG0+l8GmYPa/i7NSkIxcDArBgNVHSMEJDAigCDStB+0gbNWFT1p
+iPW8+XzJ+vS0m3JZ1gKYSUESt7n/pzAKBggqhkjOPQQDAgNIADBFAiAG3fYB1HEu
+Gi7aUUNBIOizWBCtOuWWvmR5FMVSuuUYdAIhALqbClSD9Kt2gYwYucCE7iPajc3H
+wyi1e7ZVkH5vjHP8
+-----END CERTIFICATE-----
+||auth_sign:-----BEGIN EC PRIVATE KEY-----
+MHcCAQEEIK0M179niQ0F5+iZAjIWSa+frPiYGyrktwUKln/gGOCWoAoGCCqGSM49
+AwEHoUQDQgAEn4ZMa251acwZkmZQ/HBWGyy1hMr40ChHJ29aNvlCp9xUBjl3SEem
+a3Zl8J33iXv9BNGyKH1/7p+yHYj2ougY2A==
+-----END EC PRIVATE KEY-----
+||auth_level:2`
+		}
+		if contractMethod == "get_enc_data" {
+			Params = "data_key:dataKey"
+		}
+		if contractMethod == "get_enc_auth" {
+			Params = `data_key:dataKey||authorizer:-----BEGIN CERTIFICATE-----
+MIICeDCCAh6gAwIBAgIDDmp3MAoGCCqGSM49BAMCMIGKMQswCQYDVQQGEwJDTjEQ
+MA4GA1UECBMHQmVpamluZzEQMA4GA1UEBxMHQmVpamluZzEfMB0GA1UEChMWd3gt
+b3JnMS5jaGFpbm1ha2VyLm9yZzESMBAGA1UECxMJcm9vdC1jZXJ0MSIwIAYDVQQD
+ExljYS53eC1vcmcxLmNoYWlubWFrZXIub3JnMB4XDTI1MDQxODE1NDQyOVoXDTMw
+MDQxNzE1NDQyOVowgZExCzAJBgNVBAYTAkNOMRAwDgYDVQQIEwdCZWlqaW5nMRAw
+DgYDVQQHEwdCZWlqaW5nMR8wHQYDVQQKExZ3eC1vcmcxLmNoYWlubWFrZXIub3Jn
+MQ8wDQYDVQQLEwZjb21tb24xLDAqBgNVBAMTI2NvbW1vbjEuc2lnbi53eC1vcmcx
+LmNoYWlubWFrZXIub3JnMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEn4ZMa251
+acwZkmZQ/HBWGyy1hMr40ChHJ29aNvlCp9xUBjl3SEema3Zl8J33iXv9BNGyKH1/
+7p+yHYj2ougY2KNqMGgwDgYDVR0PAQH/BAQDAgbAMCkGA1UdDgQiBCCsMh3Xbs+H
+qbb7iYyi3G2RhZG0+l8GmYPa/i7NSkIxcDArBgNVHSMEJDAigCDStB+0gbNWFT1p
+iPW8+XzJ+vS0m3JZ1gKYSUESt7n/pzAKBggqhkjOPQQDAgNIADBFAiAG3fYB1HEu
+Gi7aUUNBIOizWBCtOuWWvmR5FMVSuuUYdAIhALqbClSD9Kt2gYwYucCE7iPajc3H
+wyi1e7ZVkH5vjHP8
+-----END CERTIFICATE-----
+`
+		}
+		if contractMethod == "update_enc_auth" {
+			Params = `data_key:dataKey||authorized_person:-----BEGIN CERTIFICATE-----
+MIICfjCCAiSgAwIBAgIDCgn6MAoGCCqGSM49BAMCMIGKMQswCQYDVQQGEwJDTjEQ
+MA4GA1UECBMHQmVpamluZzEQMA4GA1UEBxMHQmVpamluZzEfMB0GA1UEChMWd3gt
+b3JnMS5jaGFpbm1ha2VyLm9yZzESMBAGA1UECxMJcm9vdC1jZXJ0MSIwIAYDVQQD
+ExljYS53eC1vcmcxLmNoYWlubWFrZXIub3JnMB4XDTI1MDQxODE1NDQyOVoXDTMw
+MDQxNzE1NDQyOVowgZcxCzAJBgNVBAYTAkNOMRAwDgYDVQQIEwdCZWlqaW5nMRAw
+DgYDVQQHEwdCZWlqaW5nMR8wHQYDVQQKExZ3eC1vcmcxLmNoYWlubWFrZXIub3Jn
+MRIwEAYDVQQLEwljb25zZW5zdXMxLzAtBgNVBAMTJmNvbnNlbnN1czEuc2lnbi53
+eC1vcmcxLmNoYWlubWFrZXIub3JnMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE
+XJBsVjVS5zcdQk2RhdA7eRs1DXdVq8xXRCD8G9CQ+YoDp/3bWLTBj7nw2ZYQHdxq
+Bp1iPP0tIbv4S/LAw1WbCqNqMGgwDgYDVR0PAQH/BAQDAgbAMCkGA1UdDgQiBCB0
+oajU1EwCPAWpcyBwnuaUUo98H4W75/0IyqmbvrXuEDArBgNVHSMEJDAigCDStB+0
+gbNWFT1piPW8+XzJ+vS0m3JZ1gKYSUESt7n/pzAKBggqhkjOPQQDAgNIADBFAiEA
+zQIb4bTapNnTqbEyr0B2VahFunoFThRZrZG1PXSicTUCIBk3x7Z/PRR9Q/agNuJI
+NaH1gyFpD5XW1nlTQa4xdrML
+-----END CERTIFICATE-----||authorizer:-----BEGIN CERTIFICATE-----
+MIICeDCCAh6gAwIBAgIDDmp3MAoGCCqGSM49BAMCMIGKMQswCQYDVQQGEwJDTjEQ
+MA4GA1UECBMHQmVpamluZzEQMA4GA1UEBxMHQmVpamluZzEfMB0GA1UEChMWd3gt
+b3JnMS5jaGFpbm1ha2VyLm9yZzESMBAGA1UECxMJcm9vdC1jZXJ0MSIwIAYDVQQD
+ExljYS53eC1vcmcxLmNoYWlubWFrZXIub3JnMB4XDTI1MDQxODE1NDQyOVoXDTMw
+MDQxNzE1NDQyOVowgZExCzAJBgNVBAYTAkNOMRAwDgYDVQQIEwdCZWlqaW5nMRAw
+DgYDVQQHEwdCZWlqaW5nMR8wHQYDVQQKExZ3eC1vcmcxLmNoYWlubWFrZXIub3Jn
+MQ8wDQYDVQQLEwZjb21tb24xLDAqBgNVBAMTI2NvbW1vbjEuc2lnbi53eC1vcmcx
+LmNoYWlubWFrZXIub3JnMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEn4ZMa251
+acwZkmZQ/HBWGyy1hMr40ChHJ29aNvlCp9xUBjl3SEema3Zl8J33iXv9BNGyKH1/
+7p+yHYj2ougY2KNqMGgwDgYDVR0PAQH/BAQDAgbAMCkGA1UdDgQiBCCsMh3Xbs+H
+qbb7iYyi3G2RhZG0+l8GmYPa/i7NSkIxcDArBgNVHSMEJDAigCDStB+0gbNWFT1p
+iPW8+XzJ+vS0m3JZ1gKYSUESt7n/pzAKBggqhkjOPQQDAgNIADBFAiAG3fYB1HEu
+Gi7aUUNBIOizWBCtOuWWvmR5FMVSuuUYdAIhALqbClSD9Kt2gYwYucCE7iPajc3H
+wyi1e7ZVkH5vjHP8
+-----END CERTIFICATE-----
+||auth_sign:-----BEGIN EC PRIVATE KEY-----
+MHcCAQEEIK0M179niQ0F5+iZAjIWSa+frPiYGyrktwUKln/gGOCWoAoGCCqGSM49
+AwEHoUQDQgAEn4ZMa251acwZkmZQ/HBWGyy1hMr40ChHJ29aNvlCp9xUBjl3SEem
+a3Zl8J33iXv9BNGyKH1/7p+yHYj2ougY2A==
+-----END EC PRIVATE KEY-----
+||auth_level:2`
+		}
+	}
 	if ContractName == "compute" {
 		Params = ""
 	}
@@ -197,8 +318,8 @@ func readWriteSet(txSimContext protocol.TxSimContext) ([]byte, error) {
 // TestInvoke comment at next version
 func TestInvoke(t *testing.T) {
 
-	contractMethod := "init_contract"
-	ContractName := "itinerary"
+	contractMethod := "textSender"
+	ContractName := "testsdk"
 	contractType := "go"
 	testTime := 1
 	filePath := prepareFile(ContractName, contractType)
@@ -217,73 +338,124 @@ func TestInvoke(t *testing.T) {
 		log:     logger,
 		chainId: ChainId,
 	}
-	tempStr := `{
-        "ip": "117.107.131.195",
-        "city": "Beijing",
-        "region": "Beijing",
-        "country": "CN",
-        "loc": "39.9075,116.3972",
-        "org": "",
-        "timezone": "Asia/Shanghai",
-        "asn": {
-            "asn": "AS4847",
-            "name": "China Networks Inter-Exchange",
-            "domain": "bta.net.cn",
-            "route": "117.107.128.0/18",
-            "type": "isp"
-        },
-        "company": {
-            "name": "Beijing Sinnet Technology Co., Ltd.",
-            "domain": "ghidc.net",
-            "type": "business"
-        },
-        "privacy": {
-            "vpn": false,
-            "proxy": false,
-            "tor": false,
-            "relay": false,
-            "hosting": false,
-            "service": ""
-        },
-        "abuse": {
-            "address": "Beijing, China",
-            "country": "CN",
-            "email": "ipas@cnnic.cn",
-            "name": "Chen hao",
-            "network": "117.107.128.0/17",
-            "phone": "+86-13311166160"
-        },
-        "domains": {
-            "total": 0,
-            "domains": []
-        }
-    }`
-	parameters := make(map[string][]byte)
-	parameters["phone"] = []byte("18892352495")
-	parameters["itinerary"] = []byte(tempStr)
-	//parameters := prepareFunc(ContractName, contractMethod)
-	fillingBaseParams(parameters)
-	for j := 0; j < testTime; j++ {
-		txSimContext := prepareTxSimContext(ChainId, BlockVersion, ContractName, contractMethod, parameters, SnapshotMock{})
-		contractResult, _ := runtimeInst.Invoke(&contractId, contractMethod, wasmBytes, parameters, txSimContext, 0)
-		fmt.Printf("contractResult = %v \n", contractResult)
-		//contractResult.Code为1表示合约函数执行失败
-		if contractResult.Code != 0 {
-			t.Fatalf("invoke contract failed, contract code")
-		}
-	}
 
-	parameters = make(map[string][]byte)
-	parameters["phone"] = []byte("18892352495")
-	contractMethod = "queryHistory"
+	parameters := prepareFunc(ContractName, contractMethod)
 	fillingBaseParams(parameters)
+	successCnt := 0
+	totalExecutionTime := float64(0)
+	//txSimContext := prepareTxSimContext(ChainId, BlockVersion, ContractName, contractMethod, parameters, SnapshotMock{})
+	//bigNumCalRe := regexp.MustCompile(`contractResult.*executionTime (\d+)`)
 	for j := 0; j < testTime; j++ {
 		txSimContext := prepareTxSimContext(ChainId, BlockVersion, ContractName, contractMethod, parameters, SnapshotMock{})
-		contractResult, _ := runtimeInst.Invoke(&contractId, contractMethod, wasmBytes, parameters, txSimContext, 0)
-		fmt.Printf("contractResult = %v \n", contractResult)
+		contractResult, _, _, _, executionTime := runtimeInst.InvokeTime(&contractId, contractMethod, wasmBytes, parameters, txSimContext, 0)
+		log.Infof("contractResult = %v \n", contractResult)
+		resultList := strings.Split(string(contractResult.Result), ",")
+		result := resultList[len(resultList)-1]
+		index := strings.Index(result, " ")
+		ContractTime, _ := strconv.Atoi(result[index+1:])
+		TotalContractTime += int64(ContractTime)
 		//contractResult.Code为1表示合约函数执行失败
 		if contractResult.Code != 0 {
 			t.Fatalf("invoke contract failed, contract code")
+		} else {
+			successCnt += 1
+			totalExecutionTime += executionTime
 		}
 	}
+	TPS := float64(successCnt) / totalExecutionTime
+	fmt.Printf("successCnt=%d totalExecutionTime=%v TPS = %v \n", successCnt, totalExecutionTime, TPS)
+	exRatio := float64(ExportMemoryTime) / float64(totalExecutionTime*1e9) * 100
+	rfRatio := float64(RealFuncTime) / float64(totalExecutionTime*1e9) * 100
+	rrRatio := float64(ReturnResultTime) / float64(totalExecutionTime*1e9) * 100
+	rpRatio := float64(ReadParamTime) / float64(totalExecutionTime*1e9) * 100
+	//tmRatio := float64(TotalFuncTime) / float64(TotalContractTime) * 100
+	ttRatio := float64(TotalFuncTime) / float64(totalExecutionTime*1e9) * 100
+	fmt.Printf("内存导入 平均占比: %.2f%%\n", exRatio)
+	fmt.Printf("读取参数 平均占比: %.2f%%\n", rpRatio)
+	fmt.Printf("实际函数 平均占比: %.2f%%\n", rfRatio)
+	fmt.Printf("结果拷贝 平均占比: %.2f%%\n", rrRatio)
+	//fmt.Printf("TotalFuncTime/TotalContractTime 平均占比: %.2f%%\n", tmRatio)
+	fmt.Printf("TotalFuncTime/totalExecutionTime 平均占比: %.2f%%\n", ttRatio)
+	minus := totalExecutionTime - float64(TotalContractTime)/1e9
+	fmt.Printf("minus %f", minus)
+	//contractMethod = "enc_auth"
+	//parameters = prepareFunc(ContractName, contractMethod)
+	//fillingBaseParams(parameters)
+	//successCnt = 0
+	//totalExecutionTime = float64(0)
+	//for j := 0; j < testTime; j++ {
+	//	//txSimContext := prepareTxSimContext(ChainId, BlockVersion, ContractName, contractMethod, parameters, SnapshotMock{})
+	//	contractResult, _, _, _, executionTime := runtimeInst.InvokeTime(&contractId, contractMethod, wasmBytes, parameters, txSimContext, 0)
+	//	fmt.Printf("contractResult = %v \n", contractResult)
+	//	//contractResult.Code为1表示合约函数执行失败
+	//	if contractResult.Code != 0 {
+	//		t.Fatalf("invoke contract failed, contract code")
+	//	} else {
+	//		successCnt += 1
+	//		totalExecutionTime += executionTime
+	//	}
+	//}
+	//TPS = float64(successCnt) / totalExecutionTime
+	//fmt.Printf("successCnt=%d totalExecutionTime=%v TPS = %v \n", successCnt, totalExecutionTime, TPS)
+	//
+	//contractMethod = "get_enc_data"
+	//parameters = prepareFunc(ContractName, contractMethod)
+	//fillingBaseParams(parameters)
+	//successCnt = 0
+	//totalExecutionTime = float64(0)
+	//for j := 0; j < testTime; j++ {
+	//	//txSimContext := prepareTxSimContext(ChainId, BlockVersion, ContractName, contractMethod, parameters, SnapshotMock{})
+	//	contractResult, _, _, _, executionTime := runtimeInst.InvokeTime(&contractId, contractMethod, wasmBytes, parameters, txSimContext, 0)
+	//	fmt.Printf("contractResult = %v \n", contractResult)
+	//	//contractResult.Code为1表示合约函数执行失败
+	//	if contractResult.Code != 0 {
+	//		t.Fatalf("invoke contract failed, contract code")
+	//	} else {
+	//		successCnt += 1
+	//		totalExecutionTime += executionTime
+	//	}
+	//}
+	//TPS = float64(successCnt) / totalExecutionTime
+	//fmt.Printf("successCnt=%d totalExecutionTime=%v TPS = %v \n", successCnt, totalExecutionTime, TPS)
+	//
+	//contractMethod = "get_enc_auth"
+	//parameters = prepareFunc(ContractName, contractMethod)
+	//fillingBaseParams(parameters)
+	//successCnt = 0
+	//totalExecutionTime = float64(0)
+	//for j := 0; j < testTime; j++ {
+	//	//txSimContext := prepareTxSimContext(ChainId, BlockVersion, ContractName, contractMethod, parameters, SnapshotMock{})
+	//	contractResult, _, _, _, executionTime := runtimeInst.InvokeTime(&contractId, contractMethod, wasmBytes, parameters, txSimContext, 0)
+	//	fmt.Printf("contractResult = %v \n", contractResult)
+	//	//contractResult.Code为1表示合约函数执行失败
+	//	if contractResult.Code != 0 {
+	//		t.Fatalf("invoke contract failed, contract code")
+	//	} else {
+	//		successCnt += 1
+	//		totalExecutionTime += executionTime
+	//	}
+	//}
+	//TPS = float64(successCnt) / totalExecutionTime
+	//fmt.Printf("successCnt=%d totalExecutionTime=%v TPS = %v \n", successCnt, totalExecutionTime, TPS)
+	//
+	//contractMethod = "update_enc_auth"
+	//parameters = prepareFunc(ContractName, contractMethod)
+	//fillingBaseParams(parameters)
+	//successCnt = 0
+	//totalExecutionTime = float64(0)
+	//for j := 0; j < testTime; j++ {
+	//	//txSimContext := prepareTxSimContext(ChainId, BlockVersion, ContractName, contractMethod, parameters, SnapshotMock{})
+	//	contractResult, _, _, _, executionTime := runtimeInst.InvokeTime(&contractId, contractMethod, wasmBytes, parameters, txSimContext, 0)
+	//	fmt.Printf("contractResult = %v \n", contractResult)
+	//	//contractResult.Code为1表示合约函数执行失败
+	//	if contractResult.Code != 0 {
+	//		t.Fatalf("invoke contract failed, contract code")
+	//	} else {
+	//		successCnt += 1
+	//		totalExecutionTime += executionTime
+	//	}
+	//}
+	//TPS = float64(successCnt) / totalExecutionTime
+	//fmt.Printf("successCnt=%d totalExecutionTime=%v TPS = %v \n", successCnt, totalExecutionTime, TPS)
+
 }

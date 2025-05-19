@@ -353,6 +353,7 @@ func (p *vmPool) newInstanceFromModule() (*wrappedInstance, error) {
 	vb := GetVmBridgeManager()
 	env := CMEnvironment{
 		instance: nil,
+		memory:   nil,
 	}
 	wasiEnv, err := wasmergo.NewWasiStateBuilder("wasi-program").
 		Finalize()
@@ -366,17 +367,22 @@ func (p *vmPool) newInstanceFromModule() (*wrappedInstance, error) {
 
 	//wasmInstance, err := wasmergo.NewInstance(p.module, vb.GetImports(p.store, &env))
 	wasmInstance, err := wasmergo.NewInstance(p.module, importObject)
-	// 如果有wasi，获取并执行 WASI start 函数
-	start, err := wasmInstance.Exports.GetWasiStartRawFunction()
-	if start != nil {
-		start.Call()
-	}
 	if err != nil {
 		p.log.Errorf("newInstanceFromModule fail: %s", err.Error())
 		return nil, err
 	}
-	env.instance = wasmInstance
+	// 如果有wasi，获取并执行 WASI start 函数
+	start, _ := wasmInstance.Exports.GetWasiStartRawFunction()
+	if start != nil {
+		start.Call()
+	}
 
+	env.instance = wasmInstance
+	env.memory, err = wasmInstance.Exports.GetMemory("memory")
+	if err != nil {
+		return nil, err
+	}
+	env.memoryData = env.memory.Data()
 	instance := &wrappedInstance{
 		id:           uuid.GetUUID(),
 		wasmInstance: wasmInstance,

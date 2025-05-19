@@ -10,6 +10,7 @@ Wacsi WebAssembly chainmaker system interface
 package vm
 
 import (
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"math/big"
@@ -26,6 +27,19 @@ import (
 	"chainmaker.org/chainmaker/pb-go/v2/common"
 	"chainmaker.org/chainmaker/protocol/v2"
 	"chainmaker.org/chainmaker/utils/v2"
+
+	commonCrt "chainmaker.org/chainmaker/common/v2/cert"
+	"chainmaker.org/chainmaker/common/v2/crypto"
+	"chainmaker.org/chainmaker/common/v2/crypto/asym"
+	bcx509 "chainmaker.org/chainmaker/common/v2/crypto/x509"
+	"chainmaker.org/chainmaker/common/v2/evmutils"
+	"chainmaker.org/chainmaker/pb-go/v2/accesscontrol"
+	configPb "chainmaker.org/chainmaker/pb-go/v2/config"
+	"chainmaker.org/chainmaker/pb-go/v2/syscontract"
+	vmPb "chainmaker.org/chainmaker/pb-go/v2/vm"
+	"encoding/hex"
+	"encoding/pem"
+	"github.com/gogo/protobuf/proto"
 )
 
 // ErrorNotManageContract means the method is not init_contract or upgrade
@@ -34,8 +48,13 @@ var ErrorNotManageContract = fmt.Errorf("method is not init_contract or upgrade"
 // Bool is the Type mapped from int to bool
 type Bool int32
 
-const boolTrue Bool = 1
-const boolFalse Bool = 0
+const (
+	version2201 uint32 = 2201
+	version2210 uint32 = 2210
+	version2220 uint32 = 2220
+	boolTrue    Bool   = 1
+	boolFalse   Bool   = 0
+)
 
 //// Wacsi WebAssembly chainmaker system interface
 //type Wacsi interface {
@@ -122,6 +141,7 @@ func (w *WacsiImpl) GetState(requestBody []byte, contractName string, txSimConte
 	key, _ := ec.GetString("key")
 	field, _ := ec.GetString("field")
 	valuePtr, _ := ec.GetInt32("value_ptr")
+
 	if err := protocol.CheckKeyFieldStr(key, field); err != nil {
 		return nil, err
 	}
@@ -142,6 +162,327 @@ func (w *WacsiImpl) GetState(requestBody []byte, contractName string, txSimConte
 		return nil, nil
 	}
 	return value, nil
+}
+
+// GetBatchState is used to get state from simContext cache
+func (w *WacsiImpl) GetBatchState(requestBody []byte, contractName string, txSimContext protocol.TxSimContext, memory []byte,
+	data []byte, isLen bool) ([]byte, error) {
+	ec := serialize.NewEasyCodecWithBytes(requestBody)
+	temp, _ := ec.GetBytes("BatchKeys")
+	keys := &vmPb.BatchKeys{}
+	if err := keys.Unmarshal(temp); err != nil {
+		return nil, err
+	}
+	valuePtr, _ := ec.GetInt32("value_ptr")
+	batchKeys := keys.Keys
+	for _, key := range batchKeys {
+		if err := protocol.CheckKeyFieldStr(key.Key, key.Field); err != nil {
+			return nil, err
+		}
+	}
+
+	if !isLen {
+		copy(memory[valuePtr:valuePtr+int32(len(data))], data)
+		return nil, nil
+	}
+	getKeys, err := txSimContext.GetKeys(keys.Keys)
+	if err != nil {
+		msg := fmt.Errorf("[get batch]error:%s", err.Error())
+		return nil, msg
+	}
+	w.logger.Debugf("wacsiImpl::GetBatchState() ==> value = %v \n", getKeys)
+	resp := vmPb.BatchKeys{Keys: getKeys}
+	value, err := resp.Marshal()
+	if err != nil {
+		return nil, err
+	}
+	copy(memory[valuePtr:valuePtr+4], bytehelper.IntToBytes(int32(len(value))))
+	if len(value) == 0 {
+		return nil, nil
+	}
+	return value, nil
+}
+
+// GetSenderAddress
+func (w *WacsiImpl) GetSenderAddress(requestBody []byte, contractName string, txSimContext protocol.TxSimContext, memory []byte,
+	data []byte, isLen bool) ([]byte, error) {
+	ec := serialize.NewEasyCodecWithBytes(requestBody)
+	valuePtr, _ := ec.GetInt32("value_ptr")
+	var bytes []byte
+	bytes, err := txSimContext.Get(chainConfigContractName, []byte(keyChainConfig))
+	if !isLen {
+		copy(memory[valuePtr:valuePtr+int32(len(data))], data)
+		return nil, nil
+	}
+	if err != nil {
+		w.logger.Errorf("txSimContext get failed, name[%s] key[%s] err: %s",
+			chainConfigContractName, keyChainConfig, err.Error())
+		return nil, err
+	}
+	var chainConfig configPb.ChainConfig
+
+	if err = proto.Unmarshal(bytes, &chainConfig); err != nil {
+		w.logger.Errorf("unmarshal chainConfig failed, contractName %s err: %+v", chainConfigContractName, err)
+		return nil, err
+	}
+	var address string
+	address, err = w.getSenderAddrWithBlockVersion(txSimContext.GetBlockVersion(), chainConfig, txSimContext)
+	if err != nil {
+		w.logger.Error(err.Error())
+		return nil, err
+	}
+	value := []byte(address)
+	copy(memory[valuePtr:valuePtr+4], bytehelper.IntToBytes(int32(len(value))))
+	if len(value) == 0 {
+		return nil, nil
+	}
+	return value, nil
+}
+func (w *WacsiImpl) getSenderAddrWithBlockVersion(blockVersion uint32, chainConfig configPb.ChainConfig,
+	txSimContext protocol.TxSimContext) (string, error) {
+	var address string
+	var err error
+
+	sender := txSimContext.GetSender()
+
+	switch sender.MemberType {
+	case accesscontrol.MemberType_CERT:
+		address, err = w.getSenderAddressFromCert(blockVersion, sender.MemberInfo, chainConfig.Vm.AddrType)
+		if err != nil {
+			w.logger.Errorf("getSenderAddressFromCert failed, %s", err.Error())
+			return "", err
+		}
+	case accesscontrol.MemberType_CERT_HASH,
+		accesscontrol.MemberType_ALIAS:
+		if blockVersion < version2201 && sender.MemberType == accesscontrol.MemberType_ALIAS {
+			w.logger.Error("handleGetSenderAddress failed, invalid member type")
+			return "", err
+		}
+
+		address, err = w.getSenderAddressFromCertHash(
+			blockVersion,
+			sender.MemberInfo,
+			chainConfig.Vm.AddrType,
+			txSimContext,
+		)
+		if err != nil {
+			w.logger.Errorf("getSenderAddressFromCert failed, %s", err.Error())
+			return "", err
+		}
+
+	case accesscontrol.MemberType_PUBLIC_KEY:
+		address, err = w.getSenderAddressFromPublicKeyPEM(blockVersion, sender.MemberInfo, chainConfig.Vm.AddrType,
+			crypto.HashAlgoMap[chainConfig.GetCrypto().Hash])
+		if err != nil {
+			w.logger.Errorf("getSenderAddressFromPublicKeyPEM failed, %s", err.Error())
+			return "", err
+		}
+
+	default:
+		w.logger.Errorf("getSenderAddrWithBlockVersion failed, invalid member type")
+		return "", err
+	}
+
+	return address, nil
+}
+func (w *WacsiImpl) getSenderAddressFromCertHash(blockVersion uint32, memberInfo []byte,
+	addressType configPb.AddrType, txSimContext protocol.TxSimContext) (string, error) {
+	var certBytes []byte
+	var err error
+	certBytes, err = w.getCertFromChain(memberInfo, txSimContext)
+	if err != nil {
+		return "", err
+	}
+
+	var address string
+	address, err = w.getSenderAddressFromCert(blockVersion, certBytes, addressType)
+	if err != nil {
+		w.logger.Errorf("getSenderAddressFromCert failed, %s", err.Error())
+		return "", err
+	}
+
+	return address, nil
+}
+func (w *WacsiImpl) getCertFromChain(memberInfo []byte, txSimContext protocol.TxSimContext) ([]byte, error) {
+	certHashKey := hex.EncodeToString(memberInfo)
+	certBytes, err := txSimContext.Get(syscontract.SystemContract_CERT_MANAGE.String(), []byte(certHashKey))
+	if err != nil {
+		w.logger.Errorf("get cert from chain failed, %s", err.Error())
+		return nil, err
+	}
+
+	return certBytes, nil
+}
+func (w *WacsiImpl) getSenderAddressFromCert(blockVersion uint32, certPem []byte,
+	addressType configPb.AddrType) (string, error) {
+	if addressType == configPb.AddrType_ZXL {
+		address, err := evmutils.ZXAddressFromCertificatePEM(certPem)
+		if err != nil {
+			return "", fmt.Errorf("ParseCertificate failed, %s", err.Error())
+		}
+
+		return address, nil
+	}
+
+	if blockVersion >= version2220 {
+		if addressType == configPb.AddrType_CHAINMAKER || addressType == configPb.AddrType_ETHEREUM {
+			return w.calculateCertAddr2220(certPem)
+		}
+
+		return "", errors.New(fmt.Sprintf("getSenderAddressFromCert >=version2220:invalid address type %d addressType %+v", blockVersion, addressType))
+	}
+
+	if blockVersion == version2201 || blockVersion == version2210 {
+		if addressType == configPb.AddrType_CHAINMAKER {
+			return w.calculateCertAddrBefore2220(certPem)
+		}
+
+		return "", errors.New(fmt.Sprintf("getSenderAddressFromCert == version2201 || blockVersion == version2210:invalid address type %d", blockVersion))
+	}
+
+	if blockVersion < version2201 {
+		if addressType == configPb.AddrType_ETHEREUM {
+			return w.calculateCertAddrBefore2220(certPem)
+		}
+
+		return "", errors.New(fmt.Sprintf("getSenderAddressFromCert < version2201:invalid address type %d", blockVersion))
+	}
+
+	return "", errors.New(fmt.Sprintf("getSenderAddressFromCert :invalid address type %d", blockVersion))
+}
+
+func (w *WacsiImpl) calculateCertAddrBefore2220(certPem []byte) (string, error) {
+	blockCrt, _ := pem.Decode(certPem)
+	crt, err := bcx509.ParseCertificate(blockCrt.Bytes)
+	if err != nil {
+		return "", fmt.Errorf("MakeAddressFromHex failed, %s", err.Error())
+	}
+
+	ski := hex.EncodeToString(crt.SubjectKeyId)
+	addrInt, err := evmutils.MakeAddressFromHex(ski)
+	if err != nil {
+		return "", fmt.Errorf("MakeAddressFromHex failed, %s", err.Error())
+	}
+
+	return addrInt.String(), nil
+}
+
+func (w *WacsiImpl) calculateCertAddr2220(certPem []byte) (string, error) {
+	blockCrt, _ := pem.Decode(certPem)
+	crt, err := bcx509.ParseCertificate(blockCrt.Bytes)
+	if err != nil {
+		return "", fmt.Errorf("MakeAddressFromHex failed, %s", err.Error())
+	}
+
+	ski := hex.EncodeToString(crt.SubjectKeyId)
+	addrInt, err := evmutils.MakeAddressFromHex(ski)
+	if err != nil {
+		return "", fmt.Errorf("MakeAddressFromHex failed, %s", err.Error())
+	}
+
+	addr := evmutils.BigToAddress(addrInt)
+	addrBytes := addr[:]
+
+	return hex.EncodeToString(addrBytes), nil
+}
+func (w *WacsiImpl) getSenderAddressFromPublicKeyPEM(blockVersion uint32, publicKeyPem []byte,
+	addressType configPb.AddrType, hashType crypto.HashType) (string, error) {
+	if addressType == configPb.AddrType_ZXL {
+		address, err := evmutils.ZXAddressFromPublicKeyPEM(publicKeyPem)
+		if err != nil {
+			w.logger.Errorf("ZXAddressFromPublicKeyPEM, failed, %s", err.Error())
+		}
+		return address, err
+	}
+
+	if blockVersion >= version2220 {
+		if addressType == configPb.AddrType_CHAINMAKER {
+			return w.calculatePubKeyAddr2220(publicKeyPem, hashType)
+		}
+
+		return "", errors.New(fmt.Sprintf("getSenderAddressFromPublicKeyPEM blockVersion >= version2220:invalid address type %d %+v", blockVersion, addressType))
+	}
+
+	if blockVersion == version2201 || blockVersion == version2210 {
+		if addressType == configPb.AddrType_CHAINMAKER {
+			return w.calculatePubKeyAddrBefore2220(publicKeyPem, hashType)
+		}
+
+		return "", errors.New(fmt.Sprintf("getSenderAddressFromPublicKeyPEM blockVersion == version2201 || blockVersion == version2210:invalid address type %d", blockVersion))
+	}
+
+	if blockVersion < version2201 {
+		if addressType == configPb.AddrType_ETHEREUM {
+			return w.calculatePubKeyAddrBefore2220(publicKeyPem, hashType)
+		}
+
+		return "", errors.New(fmt.Sprintf("getSenderAddressFromPublicKeyPEM blockVersion < version2201:invalid address type %d", blockVersion))
+	}
+
+	return "", errors.New(fmt.Sprintf("getSenderAddressFromPublicKeyPEM :invalid address type %d", blockVersion))
+}
+
+func (w *WacsiImpl) calculatePubKeyAddrBefore2220(publicKeyPem []byte, hashType crypto.HashType) (string, error) {
+	publicKey, err := asym.PublicKeyFromPEM(publicKeyPem)
+	if err != nil {
+		return "", fmt.Errorf("ParsePublicKey failed, %s", err.Error())
+	}
+
+	ski, err := commonCrt.ComputeSKI(hashType, publicKey.ToStandardKey())
+	if err != nil {
+		return "", fmt.Errorf("computeSKI from public key failed, %s", err.Error())
+	}
+
+	addr, err := evmutils.MakeAddressFromHex(hex.EncodeToString(ski))
+	if err != nil {
+		return "", fmt.Errorf("make address from cert SKI failed, %s", err)
+	}
+	return addr.String(), nil
+}
+
+func (w *WacsiImpl) calculatePubKeyAddr2220(publicKeyPem []byte, hashType crypto.HashType) (string, error) {
+	publicKey, err := asym.PublicKeyFromPEM(publicKeyPem)
+	if err != nil {
+		return "", fmt.Errorf("ParsePublicKey failed, %s", err.Error())
+	}
+
+	ski, err := commonCrt.ComputeSKI(hashType, publicKey.ToStandardKey())
+	if err != nil {
+		return "", fmt.Errorf("computeSKI from public key failed, %s", err.Error())
+	}
+
+	addrInt, err := evmutils.MakeAddressFromHex(hex.EncodeToString(ski))
+	if err != nil {
+		return "", fmt.Errorf("make address from public key failed, %s", err)
+	}
+
+	addr := evmutils.BigToAddress(addrInt)
+	addrBytes := addr[:]
+
+	return hex.EncodeToString(addrBytes), nil
+}
+
+// sha256
+func (w *WacsiImpl) Sha256(requestBody []byte, contractName string, memory []byte) ([]byte, error) {
+	ec := serialize.NewEasyCodecWithBytes(requestBody)
+	hashInput, _ := ec.GetBytes("hashInput")
+	valuePtr, _ := ec.GetInt32("value_ptr")
+
+	//w.logger.Infof("wacsiImpl::sha256() ==> hashInput = %s", string(hashInput))
+	value := sha256.Sum256([]byte(hashInput))
+
+	//w.logger.Infof("wacsiImpl::sha256() ==> value = %x", string(value[:]))
+	copy(memory[valuePtr:valuePtr+32], value[:])
+	if len(value) == 0 {
+		return nil, nil
+	}
+	return value[:], nil
+}
+
+// NativeSha256
+func (w *WacsiImpl) NativeSha256(hashInput []byte) [32]byte {
+	value := sha256.Sum256([]byte(hashInput))
+	return value
 }
 
 // DeleteState is used to delete state from simContext cache
@@ -503,7 +844,7 @@ func (w *WacsiImpl) HistoryKvIterHasNext(requestBody []byte, txSimContext protoc
 }
 
 // HistoryKvIterNext get next element
-func (*WacsiImpl) HistoryKvIterNext(requestBody []byte, txSimContext protocol.TxSimContext, memory []byte, data []byte,
+func (w *WacsiImpl) HistoryKvIterNext(requestBody []byte, txSimContext protocol.TxSimContext, memory []byte, data []byte,
 	contractname string, isLen bool) ([]byte, error) {
 	ec := serialize.NewEasyCodecWithBytes(requestBody)
 	kvIndex, _ := ec.GetInt32("ks_index")

@@ -28,13 +28,14 @@ type SimContext struct {
 	Log            *logger.CMLogger
 	Instance       *wasmer.Instance
 
-	method        string
-	parameters    map[string][]byte
-	CtxPtr        int32
-	GetStateCache []byte // cache call method GetStateLen value result, one cache per transaction
-	ChainId       string
-	ContractEvent []*commonPb.ContractEvent
-	SpecialTxType protocol.ExecOrderTxType
+	method             string
+	parameters         map[string][]byte
+	CtxPtr             int32
+	SenderAddressCache []byte
+	GetStateCache      []byte // cache call method GetStateLen value result, one cache per transaction
+	ChainId            string
+	ContractEvent      []*commonPb.ContractEvent
+	SpecialTxType      protocol.ExecOrderTxType
 }
 
 // NewSimContext for every transaction
@@ -88,9 +89,9 @@ func (sc *SimContext) CallMethod(instance *wasmer.Instance) error {
 
 func (sc *SimContext) callContract(instance *wasmer.Instance, methodName string, bytes []byte) error {
 
-	sc.Log.Debugf("sc.Contract = %v", sc.Contract)
-	sc.Log.Debugf("sc.method = %v", sc.method)
-	sc.Log.Debugf("sc.parameters = %v", sc.parameters)
+	//sc.Log.Debugf("sc.Contract = %v", sc.Contract)
+	//sc.Log.Debugf("sc.method = %v", sc.method)
+	//sc.Log.Debugf("sc.parameters = %v", sc.parameters)
 
 	lengthOfSubject := len(bytes)
 
