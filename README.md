@@ -1,6 +1,6 @@
 # chainmaker-vm-wasmer
 
-针对长安链2.3.1版本和2.3.6的vm-wasmer虚拟机进行修改，使其可支持go标准编译的wasm程序
+针对长安链2.3.1、2.3.6、2.4.0的vm-wasmer虚拟机进行修改，使其可支持go标准编译的wasm程序
 
 ## 支持go-wasm：
 
