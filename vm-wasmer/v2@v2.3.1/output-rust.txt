@@ -1,0 +1,73 @@
+GOROOT= #gosetup
+GOPATH=/home/chenhang/go #gosetup
+GOPROXY=https://goproxy.cn,direct #gosetup
+/usr/local/go/bin/go test -c -o /mnt/c/Users/tkotkch/AppData/Local/JetBrains/GoLand2024.3/tmp/GoLand/___1672chainmaker_org_chainmaker_vm_wasmer_v2__TestInvoke_linux.test chainmaker.org/chainmaker/vm-wasmer/v2 #gosetup
+/usr/local/go/bin/go tool test2json -t /mnt/c/Users/tkotkch/AppData/Local/JetBrains/GoLand2024.3/tmp/GoLand/___1672chainmaker_org_chainmaker_vm_wasmer_v2__TestInvoke_linux.test -test.v -test.paniconexit0 -test.run ^\QTestInvoke\E$ #gosetup
+=== RUN   TestInvoke
+config = wasm_config_t { engine: UNIVERSAL, compiler: CRANELIFT, middlewares: [], nan_canonicalization: false, features: None, target: None }
+2025-04-08 23:03:09.178	[INFO]	unit_test	wasmer-go/module.go:96	store.inner() => &{} 
+2025-04-08 23:03:09.179	[INFO]	unit_test	wasmer-go/module.go:97	wasmBytesPtr => 0xc00081c000 
+2025-04-08 23:03:09.179	[INFO]	unit_test	wasmer-go/module.go:98	wasmBytesLength => 210518 
+2025-04-08 23:03:09.222	[DEBUG]	[Vm]	v2@v2.3.1/vm_bridge.go:373	init vmBridgeManager
+2025-04-08 23:03:09.222	[INFO]	unit_test	v2@v2.3.1/vm_pool.go:183	vm pool verify byteCode finish.
+2025-04-08 23:03:09.223	[INFO]	unit_test	v2@v2.3.1/vm_pool.go:186	vm pool startRefreshingLoop...
+2025-04-08 23:03:09.223	[DEBUG]	unit_test	v2@v2.3.1/runtime.go:37	called invoke for tx:4fedd698c1e24cb6ad615ed2ceaa9f2a
+2025-04-08 23:03:09.230	[DEBUG]	unit_test	v2@v2.3.1/runtime.go:74	before get instance for tx: 4fedd698c1e24cb6ad615ed2ceaa9f2a
+2025-04-08 23:03:09.230	[DEBUG]	[Vm]	v2@v2.3.1/vm_pool.go:97	can't get wrappedInstance from vmPool.
+2025-04-08 23:03:09.230	[DEBUG]	[Vm]	v2@v2.3.1/vm_pool.go:105	send 'applySignal' to vmPool.
+2025-04-08 23:03:09.230	[DEBUG]	[Vm]	v2@v2.3.1/vm_pool.go:199	vmPool handling an `apply` Signal
+2025-04-08 23:03:09.236	[DEBUG]	[Vm]	v2@v2.3.1/vm_pool.go:202	vmPool should grow 5 wrappedInstance.
+2025-04-08 23:03:09.236	[DEBUG]	[Vm]	v2@v2.3.1/vm_pool.go:109	got an wrappedInstance from vmPool.
+2025-04-08 23:03:09.236	[DEBUG]	unit_test	v2@v2.3.1/runtime.go:76	after get instance for tx: 4fedd698c1e24cb6ad615ed2ceaa9f2a
+2025-04-08 23:03:09.237	[INFO]	unit_test	v2@v2.3.1/vm_pool.go:300	vm pool grow size = 5
+2025-04-08 23:03:09.237	[INFO]	unit_test	v2@v2.3.1/vm_pool.go:205	[_1.0.0] vm pool grows by 5, the current size is 5
+2025-04-08 23:03:09.237	[DEBUG]	unit_test	v2@v2.3.1/sim_context.go:94	sc.Contract = version:"1.0.0" runtime_type:WASMER 
+2025-04-08 23:03:09.238	[DEBUG]	unit_test	v2@v2.3.1/sim_context.go:95	sc.method = increase
+2025-04-08 23:03:09.238	[DEBUG]	unit_test	v2@v2.3.1/sim_context.go:96	sc.parameters = map[__block_height__:[49 49 49] __context_ptr__:[49] __creator_org_id__:[67 82 69 65 84 79 82 95 79 82 71 95 73 68] __creator_pk__:[67 82 69 65 84 79 82 95 80 75] __creator_role__:[67 82 69 65 84 79 82 95 82 79 76 69] __sender_org_id__:[83 69 78 68 69 82 95 79 82 71 95 73 68] __sender_pk__:[83 69 78 68 69 82 95 80 75] __sender_role__:[83 69 78 68 69 82 95 82 79 76 69] __tx_id__:[84 88 95 73 68] key:[116 101 115 116 95 107 101 121]]
+2025-04-08 23:03:09.238	[DEBUG]	[Vm]	v2@v2.3.1/vm_bridge.go:133	### enter syscall handling, method = 'GetStateLen'
+2025-04-08 23:03:09.249	[DEBUG]	[Vm]	v2@v2.3.0/wasi.go:133	wacsiImpl::GetState() ==> key = count, field = test_key 
+
+2025-04-08 23:03:09.249	[DEBUG]	[Vm]	v2@v2.3.0/wasi.go:139	wacsiImpl::GetState() ==> value =  
+
+2025-04-08 23:03:09.249	[DEBUG]	[Vm]	v2@v2.3.1/vm_bridge.go:139	### leave syscall handling, method = 'GetStateLen'
+2025-04-08 23:03:09.249	[DEBUG]	[Vm]	v2@v2.3.1/vm_bridge.go:133	### enter syscall handling, method = 'PutState'
+2025-04-08 23:03:09.249	[DEBUG]	[Vm]	v2@v2.3.0/wasi.go:110	wacsiImpl::PutState() ==> key = count, field = test_key, value =     
+
+2025-04-08 23:03:09.249	[DEBUG]	[Vm]	v2@v2.3.1/vm_bridge.go:139	### leave syscall handling, method = 'PutState'
+2025-04-08 23:03:09.249	[DEBUG]	[Vm]	v2@v2.3.1/vm_bridge.go:133	### enter syscall handling, method = 'LogMessage'
+2025-04-08 23:03:09.249	[DEBUG]	unit_test	v2@v2.3.1/vm_bridge.go:41	wasmer log>> [4fedd698c1e24cb6ad615ed2ceaa9f2a] ++ stone success count=1
+2025-04-08 23:03:09.249	[DEBUG]	[Vm]	v2@v2.3.1/vm_bridge.go:139	### leave syscall handling, method = 'LogMessage'
+2025-04-08 23:03:09.249	[DEBUG]	unit_test	v2@v2.3.1/runtime.go:93	contract invoke finished, tx:4fedd698c1e24cb6ad615ed2ceaa9f2a, call method err is %!s(<nil>)
+2025-04-08 23:03:09.249	[DEBUG]	unit_test	v2@v2.3.1/runtime.go:53	wasmer runtime invoke[4fedd698c1e24cb6ad615ed2ceaa9f2a]: used gas 172223  used time 19
+2025-04-08 23:03:09.249	[DEBUG]	test	v2@v2.3.0/tx_sim_context.go:612	txSimContext[4fedd698c1e24cb6ad615ed2ceaa9f2a] access db spend time:0
+rwSet = tx_id:"4fedd698c1e24cb6ad615ed2ceaa9f2a" tx_reads:<key:"count#test_key" > tx_writes:<key:"count#test_key" value:"\001\000\000\000" >  
+2025-04-08 23:03:09.249	[DEBUG]	unit_test	v2@v2.3.1/runtime.go:37	called invoke for tx:4fedd698c1e24cb6ad615ed2ceaa9f2a
+2025-04-08 23:03:09.249	[DEBUG]	unit_test	v2@v2.3.1/runtime.go:74	before get instance for tx: 4fedd698c1e24cb6ad615ed2ceaa9f2a
+2025-04-08 23:03:09.249	[DEBUG]	unit_test	v2@v2.3.1/runtime.go:76	after get instance for tx: 4fedd698c1e24cb6ad615ed2ceaa9f2a
+2025-04-08 23:03:09.249	[DEBUG]	unit_test	v2@v2.3.1/sim_context.go:94	sc.Contract = version:"1.0.0" runtime_type:WASMER 
+2025-04-08 23:03:09.249	[DEBUG]	unit_test	v2@v2.3.1/sim_context.go:95	sc.method = increase
+2025-04-08 23:03:09.249	[DEBUG]	unit_test	v2@v2.3.1/sim_context.go:96	sc.parameters = map[__block_height__:[49 49 49] __context_ptr__:[50] __creator_org_id__:[67 82 69 65 84 79 82 95 79 82 71 95 73 68] __creator_pk__:[67 82 69 65 84 79 82 95 80 75] __creator_role__:[67 82 69 65 84 79 82 95 82 79 76 69] __sender_org_id__:[83 69 78 68 69 82 95 79 82 71 95 73 68] __sender_pk__:[83 69 78 68 69 82 95 80 75] __sender_role__:[83 69 78 68 69 82 95 82 79 76 69] __tx_id__:[84 88 95 73 68] key:[116 101 115 116 95 107 101 121]]
+2025-04-08 23:03:09.249	[DEBUG]	[Vm]	v2@v2.3.1/vm_bridge.go:133	### enter syscall handling, method = 'GetStateLen'
+2025-04-08 23:03:09.249	[DEBUG]	[Vm]	v2@v2.3.0/wasi.go:133	wacsiImpl::GetState() ==> key = count, field = test_key 
+
+2025-04-08 23:03:09.249	[DEBUG]	[Vm]	v2@v2.3.0/wasi.go:139	wacsiImpl::GetState() ==> value =     
+
+2025-04-08 23:03:09.249	[DEBUG]	[Vm]	v2@v2.3.1/vm_bridge.go:139	### leave syscall handling, method = 'GetStateLen'
+2025-04-08 23:03:09.249	[DEBUG]	[Vm]	v2@v2.3.1/vm_bridge.go:133	### enter syscall handling, method = 'GetState'
+2025-04-08 23:03:09.249	[DEBUG]	[Vm]	v2@v2.3.1/vm_bridge.go:139	### leave syscall handling, method = 'GetState'
+2025-04-08 23:03:09.249	[DEBUG]	[Vm]	v2@v2.3.1/vm_bridge.go:133	### enter syscall handling, method = 'PutState'
+2025-04-08 23:03:09.249	[DEBUG]	[Vm]	v2@v2.3.0/wasi.go:110	wacsiImpl::PutState() ==> key = count, field = test_key, value =     
+
+2025-04-08 23:03:09.249	[DEBUG]	[Vm]	v2@v2.3.1/vm_bridge.go:139	### leave syscall handling, method = 'PutState'
+2025-04-08 23:03:09.249	[DEBUG]	[Vm]	v2@v2.3.1/vm_bridge.go:133	### enter syscall handling, method = 'LogMessage'
+2025-04-08 23:03:09.249	[DEBUG]	unit_test	v2@v2.3.1/vm_bridge.go:41	wasmer log>> [4fedd698c1e24cb6ad615ed2ceaa9f2a] ++ stone success count=2
+2025-04-08 23:03:09.249	[DEBUG]	[Vm]	v2@v2.3.1/vm_bridge.go:139	### leave syscall handling, method = 'LogMessage'
+2025-04-08 23:03:09.249	[DEBUG]	unit_test	v2@v2.3.1/runtime.go:93	contract invoke finished, tx:4fedd698c1e24cb6ad615ed2ceaa9f2a, call method err is %!s(<nil>)
+2025-04-08 23:03:09.249	[DEBUG]	unit_test	v2@v2.3.1/runtime.go:53	wasmer runtime invoke[4fedd698c1e24cb6ad615ed2ceaa9f2a]: used gas 214896  used time 0
+2025-04-08 23:03:09.249	[DEBUG]	test	v2@v2.3.0/tx_sim_context.go:612	txSimContext[4fedd698c1e24cb6ad615ed2ceaa9f2a] access db spend time:0
+rwSet = tx_id:"4fedd698c1e24cb6ad615ed2ceaa9f2a" tx_reads:<key:"count#test_key" value:"\001\000\000\000" > tx_writes:<key:"count#test_key" value:"\002\000\000\000" >  
+--- PASS: TestInvoke (0.07s)
+PASS
+2025-04-08 23:03:09.249	[DEBUG]	unit_test	v2@v2.3.1/vm_pool.go:227	[_1.0.0] vmPool handling an `close` Signal
+
+进程 已完成，退出代码为 0

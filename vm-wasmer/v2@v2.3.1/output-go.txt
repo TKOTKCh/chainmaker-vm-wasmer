@@ -1,0 +1,31 @@
+=== RUN   TestInvoke
+config = wasm_config_t { engine: UNIVERSAL, compiler: CRANELIFT, middlewares: [], nan_canonicalization: false, features: None, target: None }
+2025-04-08 22:59:59.681	[INFO]	unit_test	wasmer-go/module.go:96	store.inner() => &{}
+2025-04-08 22:59:59.681	[INFO]	unit_test	wasmer-go/module.go:97	wasmBytesPtr => 0xc000f1c000
+2025-04-08 22:59:59.681	[INFO]	unit_test	wasmer-go/module.go:98	wasmBytesLength => 2831214
+2025-04-08 23:00:00.119	[DEBUG]	[Vm]	v2@v2.3.1/vm_bridge.go:373	init vmBridgeManager
+2025-04-08 23:00:00.128	[INFO]	unit_test	v2@v2.3.1/vm_pool.go:183	vm pool verify byteCode finish.
+2025-04-08 23:00:00.128	[INFO]	unit_test	v2@v2.3.1/vm_pool.go:186	vm pool startRefreshingLoop...
+2025-04-08 23:00:00.128	[DEBUG]	unit_test	v2@v2.3.1/runtime.go:37	called invoke for tx:491e866208a3487992c6392f7524451b
+2025-04-08 23:00:00.132	[DEBUG]	unit_test	v2@v2.3.1/runtime.go:74	before get instance for tx: 491e866208a3487992c6392f7524451b
+2025-04-08 23:00:00.132	[DEBUG]	[Vm]	v2@v2.3.1/vm_pool.go:97	can't get wrappedInstance from vmPool.
+2025-04-08 23:00:00.132	[DEBUG]	[Vm]	v2@v2.3.1/vm_pool.go:105	send 'applySignal' to vmPool.
+2025-04-08 23:00:00.132	[DEBUG]	[Vm]	v2@v2.3.1/vm_pool.go:199	vmPool handling an `apply` Signal
+2025-04-08 23:00:00.138	[DEBUG]	[Vm]	v2@v2.3.1/vm_pool.go:202	vmPool should grow 5 wrappedInstance.
+2025-04-08 23:00:00.139	[DEBUG]	[Vm]	v2@v2.3.1/vm_pool.go:109	got an wrappedInstance from vmPool.
+2025-04-08 23:00:00.139	[DEBUG]	unit_test	v2@v2.3.1/runtime.go:76	after get instance for tx: 491e866208a3487992c6392f7524451b
+2025-04-08 23:00:00.144	[INFO]	unit_test	v2@v2.3.1/vm_pool.go:300	vm pool grow size = 5
+2025-04-08 23:00:00.144	[INFO]	unit_test	v2@v2.3.1/vm_pool.go:205	[_1.0.0] vm pool grows by 5, the current size is 5
+2025-04-08 23:00:00.145	[DEBUG]	unit_test	v2@v2.3.1/sim_context.go:94	sc.Contract = version:"1.0.0" runtime_type:WASMER
+2025-04-08 23:00:00.146	[DEBUG]	unit_test	v2@v2.3.1/sim_context.go:95	sc.method = normalCal
+2025-04-08 23:00:00.146	[DEBUG]	unit_test	v2@v2.3.1/sim_context.go:96	sc.parameters = map[__block_height__:[49 49 49] __context_ptr__:[49] __creator_org_id__:[67 82 69 65 84 79 82 95 79 82 71 95 73 68] __creator_pk__:[67 82 69 65 84 79 82 95 80 75] __creator_role__:[67 82 69 65 84 79 82 95 82 79 76 69] __sender_org_id__:[83 69 78 68 69 82 95 79 82 71 95 73 68] __sender_pk__:[83 69 78 68 69 82 95 80 75] __sender_role__:[83 69 78 68 69 82 95 82 79 76 69] __tx_id__:[84 88 95 73 68]]
+2025-04-08 23:00:00.148	[DEBUG]	[Vm]	v2@v2.3.1/vm_bridge.go:133	### enter syscall handling, method = 'SuccessResult'
+2025-04-08 23:00:00.148	[DEBUG]	[Vm]	v2@v2.3.1/vm_bridge.go:139	### leave syscall handling, method = 'SuccessResult'
+2025-04-08 23:00:00.148	[DEBUG]	unit_test	v2@v2.3.1/runtime.go:93	contract invoke finished, tx:491e866208a3487992c6392f7524451b, call method err is %!s(<nil>)
+2025-04-08 23:00:00.148	[DEBUG]	unit_test	v2@v2.3.1/runtime.go:53	wasmer runtime invoke[491e866208a3487992c6392f7524451b]: used gas 37412819  used time 16
+2025-04-08 23:00:00.148	[DEBUG]	test	v2@v2.3.0/tx_sim_context.go:612	txSimContext[491e866208a3487992c6392f7524451b] access db spend time:0
+rwSet = tx_id:"491e866208a3487992c6392f7524451b"
+    runtime_test.go:232: read write set error: write set contain no 'count#test_key'
+--- FAIL: TestInvoke (0.50s)
+
+FAIL
