@@ -88,11 +88,13 @@ func (self *Instance) SetGasLimit(newLimit uint64) {
 // ReleaseFn is a function to release resources
 // This function is parameterized to make sure that the correct
 // argument is passed to the function.
-type ReleaseFn[T any] func(T)
 
-func keepAlive[T any](value T) {
-	runtime.KeepAlive(value)
-}
+//TODO check go1.16版本用不来泛型 但是实际上GetFunctionSafe、ReleaseFn、keepAlive 没用到
+//type ReleaseFn[T any] func(T)
+
+//func keepAlive[T any](value T) {
+//	runtime.KeepAlive(value)
+//}
 
 // GetFunctionSafe performs the same job as instance.Exports.GetFunction
 // but it returns a ReleaseFn to release the resources.
@@ -118,13 +120,14 @@ func keepAlive[T any](value T) {
 // which should be called if this function returns non-error value.
 // This usage is preferred because it is less error-prone (i.e. it
 // returns 3 values that should all be handled appropriately).
-func (self *Instance) GetFunctionSafe(name string) (NativeFunction, ReleaseFn[*Instance], error) {
-	fn, err := self.Exports.GetFunction(name)
-	if err != nil {
-		return nil, nil, err
-	}
-	return fn, keepAlive, nil
-}
+
+//func (self *Instance) GetFunctionSafe(name string) (NativeFunction, ReleaseFn[*Instance], error) {
+//	fn, err := self.Exports.GetFunction(name)
+//	if err != nil {
+//		return nil, nil, err
+//	}
+//	return fn, keepAlive, nil
+//}
 
 // Close the instance
 //

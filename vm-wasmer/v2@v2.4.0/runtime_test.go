@@ -99,12 +99,11 @@ func RandParams(FunctionParametersMap map[string]string) map[string][]byte {
 		}
 		if strings.Contains(strings.ToLower(k), strings.ToLower("tokenId")) {
 			value = RandomNumberString(len(value))
-			//value = "111111111111111111111112"
 		}
 		normalParams[k] = value
 		params[k] = []byte(value)
+		fmt.Printf("key: %s value:%s \n", k, value)
 	}
-
 	return params
 }
 
@@ -134,7 +133,7 @@ func getMethodParams(ContractName, contractMethod string) string {
 		if contractMethod == "balanceOf" || contractMethod == "accountTokens" {
 			Params = "account:c0d8e4ce07a48081eff14a3016699b1c839c4375"
 		}
-		if contractMethod == "mint" {
+		if contractMethod == "mint" || strings.Contains(contractMethod, "testgas") {
 			Params = "to:8acfaca5eeec9f6f7c23c4ffac969b86f27799b0||tokenId:111111111111111111111111||metadata:http://chainmaker.org.cn/"
 		}
 		//if contractMethod == "approve" {
@@ -287,7 +286,7 @@ a3Zl8J33iXv9BNGyKH1/7p+yHYj2ougY2A==
 		}
 	}
 	if ContractName == "standard-evidence" {
-		if contractMethod == "evidenceAndFindByHash" {
+		if contractMethod == "evidenceAndFindByHash" || strings.Contains(contractMethod, "testgas") {
 			Params = "evidences:[{\"id\":\"id1\",\"hash\":\"hash1\",\"txId\":\"\",\"blockHeight\":0,\"timestamp\":\"\",\"metadata\":\"11\"},{\"id\":\"id2\",\"hash\":\"hash2\",\"txId\":\"\",\"blockHeight\":0,\"timestamp\":\"\",\"metadata\":\"11\"}]||hash:hash1"
 
 		}
@@ -345,8 +344,8 @@ func readWriteSet(txSimContext protocol.TxSimContext) ([]byte, error) {
 // TestInvoke comment at next version
 func TestInvoke(t *testing.T) {
 
-	contractMethod := "hashCal"
-	ContractName := "compute"
+	contractMethod := "mint"
+	ContractName := "erc721"
 	contractType := "go"
 	testTime := 100
 	filePath := prepareFile(ContractName, contractType)
@@ -376,7 +375,7 @@ func TestInvoke(t *testing.T) {
 	for j := 0; j < testTime; j++ {
 		txSimContext := prepareTxSimContext(ChainId, BlockVersion, ContractName, contractMethod, parameters, SnapshotMock{})
 		contractResult, _, _, _, executionTime := runtimeInst.InvokeTime(&contractId, contractMethod, wasmBytes, parameters, txSimContext, 0)
-		log.Infof("contractResult = %v \n", contractResult)
+		log.Infof("testid = %d contractResult = %v \n", j, contractResult)
 		gasUsed := contractResult.GasUsed
 		gasDist[gasUsed]++
 		resultList := strings.Split(string(contractResult.Result), ",")
@@ -392,57 +391,6 @@ func TestInvoke(t *testing.T) {
 			totalExecutionTime += executionTime
 		}
 	}
-
-	////并发测试
-	//var (
-	//	successCnt         int64
-	//	totalExecutionTime float64
-	//	TotalContractTime  int64
-	//	gasDist            = make(map[uint64]int)
-	//	mutex              sync.Mutex
-	//	wg                 sync.WaitGroup
-	//)
-	//
-	//for j := 0; j < testTime; j++ {
-	//	wg.Add(1)
-	//	go func(j int) {
-	//		defer wg.Done()
-	//
-	//		if j == 5 {
-	//			fmt.Println("here")
-	//		}
-	//
-	//		txSimContext := prepareTxSimContext(ChainId, BlockVersion, ContractName, contractMethod, parameters, SnapshotMock{})
-	//		contractResult, _, _, _, _ := runtimeInst.InvokeTime(&contractId, contractMethod, wasmBytes, parameters, txSimContext, 0)
-	//		log.Infof("contractResult = %v \n", contractResult)
-	//
-	//		// 统计 gasUsed 分布
-	//		mutex.Lock()
-	//		gasDist[contractResult.GasUsed]++
-	//		mutex.Unlock()
-	//
-	//		// 解析执行时间
-	//		resultList := strings.Split(string(contractResult.Result), ",")
-	//		result := resultList[len(resultList)-1]
-	//		index := strings.Index(result, " ")
-	//		ContractTime, _ := strconv.Atoi(result[index+1:])
-	//
-	//		// 累加执行时间
-	//		atomic.AddInt64(&TotalContractTime, int64(ContractTime))
-	//
-	//		if contractResult.Code != 0 {
-	//			// 并发中不能直接 t.Fatalf，会导致测试中途终止，建议收集错误后统一处理
-	//			log.Errorf("invoke contract failed, contract code = %d", contractResult.Code)
-	//			return
-	//		}
-	//
-	//		//atomic.AddInt64(&successCnt, 1)
-	//		//atomic.AddInt64(&totalExecutionTime, executionTime)
-	//
-	//	}(j)
-	//}
-	//
-	//wg.Wait()
 
 	log.Infof(fmt.Sprint(gasDist))
 	maxkey := uint64(0)
@@ -473,83 +421,4 @@ func TestInvoke(t *testing.T) {
 	fmt.Printf("TotalFuncTime/totalExecutionTime 平均占比: %.2f%%\n", ttRatio)
 	minus := totalExecutionTime - float64(TotalContractTime)/1e9
 	fmt.Printf("minus %f", minus)
-	//contractMethod = "enc_auth"
-	//parameters = prepareFunc(ContractName, contractMethod)
-	//fillingBaseParams(parameters)
-	//successCnt = 0
-	//totalExecutionTime = float64(0)
-	//for j := 0; j < testTime; j++ {
-	//	//txSimContext := prepareTxSimContext(ChainId, BlockVersion, ContractName, contractMethod, parameters, SnapshotMock{})
-	//	contractResult, _, _, _, executionTime := runtimeInst.InvokeTime(&contractId, contractMethod, wasmBytes, parameters, txSimContext, 0)
-	//	fmt.Printf("contractResult = %v \n", contractResult)
-	//	//contractResult.Code为1表示合约函数执行失败
-	//	if contractResult.Code != 0 {
-	//		t.Fatalf("invoke contract failed, contract code")
-	//	} else {
-	//		successCnt += 1
-	//		totalExecutionTime += executionTime
-	//	}
-	//}
-	//TPS = float64(successCnt) / totalExecutionTime
-	//fmt.Printf("successCnt=%d totalExecutionTime=%v TPS = %v \n", successCnt, totalExecutionTime, TPS)
-	//
-	//contractMethod = "get_enc_data"
-	//parameters = prepareFunc(ContractName, contractMethod)
-	//fillingBaseParams(parameters)
-	//successCnt = 0
-	//totalExecutionTime = float64(0)
-	//for j := 0; j < testTime; j++ {
-	//	//txSimContext := prepareTxSimContext(ChainId, BlockVersion, ContractName, contractMethod, parameters, SnapshotMock{})
-	//	contractResult, _, _, _, executionTime := runtimeInst.InvokeTime(&contractId, contractMethod, wasmBytes, parameters, txSimContext, 0)
-	//	fmt.Printf("contractResult = %v \n", contractResult)
-	//	//contractResult.Code为1表示合约函数执行失败
-	//	if contractResult.Code != 0 {
-	//		t.Fatalf("invoke contract failed, contract code")
-	//	} else {
-	//		successCnt += 1
-	//		totalExecutionTime += executionTime
-	//	}
-	//}
-	//TPS = float64(successCnt) / totalExecutionTime
-	//fmt.Printf("successCnt=%d totalExecutionTime=%v TPS = %v \n", successCnt, totalExecutionTime, TPS)
-	//
-	//contractMethod = "get_enc_auth"
-	//parameters = prepareFunc(ContractName, contractMethod)
-	//fillingBaseParams(parameters)
-	//successCnt = 0
-	//totalExecutionTime = float64(0)
-	//for j := 0; j < testTime; j++ {
-	//	//txSimContext := prepareTxSimContext(ChainId, BlockVersion, ContractName, contractMethod, parameters, SnapshotMock{})
-	//	contractResult, _, _, _, executionTime := runtimeInst.InvokeTime(&contractId, contractMethod, wasmBytes, parameters, txSimContext, 0)
-	//	fmt.Printf("contractResult = %v \n", contractResult)
-	//	//contractResult.Code为1表示合约函数执行失败
-	//	if contractResult.Code != 0 {
-	//		t.Fatalf("invoke contract failed, contract code")
-	//	} else {
-	//		successCnt += 1
-	//		totalExecutionTime += executionTime
-	//	}
-	//}
-	//TPS = float64(successCnt) / totalExecutionTime
-	//fmt.Printf("successCnt=%d totalExecutionTime=%v TPS = %v \n", successCnt, totalExecutionTime, TPS)
-	//
-	//contractMethod = "update_enc_auth"
-	//parameters = prepareFunc(ContractName, contractMethod)
-	//fillingBaseParams(parameters)
-	//successCnt = 0
-	//totalExecutionTime = float64(0)
-	//for j := 0; j < testTime; j++ {
-	//	//txSimContext := prepareTxSimContext(ChainId, BlockVersion, ContractName, contractMethod, parameters, SnapshotMock{})
-	//	contractResult, _, _, _, executionTime := runtimeInst.InvokeTime(&contractId, contractMethod, wasmBytes, parameters, txSimContext, 0)
-	//	fmt.Printf("contractResult = %v \n", contractResult)
-	//	//contractResult.Code为1表示合约函数执行失败
-	//	if contractResult.Code != 0 {
-	//		t.Fatalf("invoke contract failed, contract code")
-	//	} else {
-	//		successCnt += 1
-	//		totalExecutionTime += executionTime
-	//	}
-	//}
-	//TPS = float64(successCnt) / totalExecutionTime
-	//fmt.Printf("successCnt=%d totalExecutionTime=%v TPS = %v \n", successCnt, totalExecutionTime, TPS)
 }

@@ -128,3 +128,8 @@ func (self *Memory) IntoExtern() *Extern {
 
 	return newExtern(pointer, self.ownedBy())
 }
+
+// chenhang wasmer实例内存Reset
+func (self *Memory) Reset() bool {
+	return bool(C.wasm_memory_reset(self.inner()))
+}

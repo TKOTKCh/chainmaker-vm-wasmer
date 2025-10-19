@@ -717,12 +717,14 @@ func metering_delegate(op C.wasmer_parser_operator_t) C.uint64_t {
 //			I32Add: 	4,
 //		 }
 //	  config.PushMeteringMiddleware(7865444, opmap)
-func (self *Config) PushMeteringMiddleware(maxGasUsageAllowed uint64, opMap map[Opcode]uint32) *Config {
+func (self *Config) PushMeteringMiddleware(maxGasUsageAllowed uint64, opMap map[Opcode]uint32, function_match string) *Config {
 	if opCodeMap == nil {
 		// REVIEW only allowing this to be set once
 		opCodeMap = opMap
 	}
-	C.wasm_config_push_middleware(self.inner(), C.wasmer_metering_as_middleware(C.wasmer_metering_new(getPlatformLong(maxGasUsageAllowed), (*[0]byte)(C.metering_delegate))))
+	cfunction_match := C.CString(function_match)
+	defer C.free(unsafe.Pointer(cfunction_match))
+	C.wasm_config_push_middleware(self.inner(), C.wasmer_metering_as_middleware(C.wasmer_metering_new(getPlatformLong(maxGasUsageAllowed), (*[0]byte)(C.metering_delegate), cfunction_match)))
 	return self
 }
 
@@ -764,8 +766,10 @@ func (self *Config) MaxPagesLimit(maxPagesLimited uint32) *Config {
 //	   config := NewConfig()
 //	   config.PushMeteringMiddlewarePtr(800000000, getInternalCPointer())
 //	}
-func (self *Config) PushMeteringMiddlewarePtr(maxGasUsageAllowed uint64, p unsafe.Pointer) *Config {
-	C.wasm_config_push_middleware(self.inner(), C.wasmer_metering_as_middleware(C.wasmer_metering_new(getPlatformLong(maxGasUsageAllowed), (*[0]byte)(p))))
+func (self *Config) PushMeteringMiddlewarePtr(maxGasUsageAllowed uint64, p unsafe.Pointer, function_match string) *Config {
+	cfunction_match := C.CString(function_match)
+	defer C.free(unsafe.Pointer(cfunction_match))
+	C.wasm_config_push_middleware(self.inner(), C.wasmer_metering_as_middleware(C.wasmer_metering_new(getPlatformLong(maxGasUsageAllowed), (*[0]byte)(p), cfunction_match)))
 	return self
 }
 

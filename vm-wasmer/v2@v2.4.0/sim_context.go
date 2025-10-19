@@ -8,13 +8,13 @@ SPDX-License-Identifier: Apache-2.0
 package wasmer
 
 import (
+	"chainmaker.org/chainmaker/common/v2/serialize"
 	"fmt"
 	"strconv"
 	"sync"
 
 	"chainmaker.org/chainmaker/logger/v2"
 
-	"chainmaker.org/chainmaker/common/v2/serialize"
 	commonPb "chainmaker.org/chainmaker/pb-go/v2/common"
 	"chainmaker.org/chainmaker/protocol/v2"
 	"chainmaker.org/chainmaker/vm-wasmer/v2/wasmer-go"

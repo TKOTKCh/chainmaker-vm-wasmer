@@ -92,7 +92,9 @@ func (r *RuntimeInstance) Invoke(contract *commonPb.Contract, method string, byt
 	}
 
 	instance := instanceInfo.wasmInstance
-	instance.SetGasLimit(protocol.GasLimit - gasUsed)
+	gasLimit := uint64(1e15)
+	r.log.Debugf("gasLimit:%d", gasLimit-gasUsed)
+	instance.SetGasLimit(gasLimit - gasUsed)
 
 	var sc = NewSimContext(method, r.log, r.chainId)
 	defer sc.removeCtxPointer()
@@ -104,7 +106,7 @@ func (r *RuntimeInstance) Invoke(contract *commonPb.Contract, method string, byt
 	sc.SpecialTxType = protocol.ExecOrderTxTypeNormal
 
 	err := sc.CallMethod(instance)
-	r.log.Debugf("contract invoke finished, tx:%s, call method err is %s",
+	r.log.Infof("contract invoke finished, tx:%s, call method err is %s",
 		txContext.GetTx().Payload.TxId, err)
 	if err != nil {
 		r.log.Errorf("contract invoke failed, %s, tx: %s", err, txContext.GetTx().Payload.TxId)
@@ -112,7 +114,7 @@ func (r *RuntimeInstance) Invoke(contract *commonPb.Contract, method string, byt
 	specialTxType = sc.SpecialTxType
 
 	// gas Log
-	gas := protocol.GasLimit - instance.GetGasRemaining()
+	gas := gasLimit - instance.GetGasRemaining()
 	if instance.GetGasRemaining() <= 0 {
 		err = fmt.Errorf("contract invoke failed, out of gas %d/%d, tx: %s", gas, int64(protocol.GasLimit),
 			txContext.GetTx().Payload.TxId)
@@ -140,8 +142,18 @@ func (r *RuntimeInstance) Invoke(contract *commonPb.Contract, method string, byt
 	}
 	contractResult.ContractEvent = sc.ContractEvent
 	contractResult.GasUsed = gas
+	exportMemory, err := instance.Exports.GetMemory("memory")
+	if err != nil {
+		return
+	}
+
+	r.log.Infof("instance id: %s, gas used:%d, exportMemory datasize %d字节 %d页", instanceInfo.id, gas, exportMemory.DataSize(), exportMemory.Size())
 	return
 }
+
+//var (
+//	instanceNum = make(map[string]int)
+//)
 
 // Invoke contract by call vm, implement protocol.RuntimeInstance
 func (r *RuntimeInstance) InvokeTime(contract *commonPb.Contract, method string, byteCode []byte,
@@ -247,10 +259,13 @@ func (r *RuntimeInstance) InvokeTime(contract *commonPb.Contract, method string,
 	}
 	contractResult.ContractEvent = sc.ContractEvent
 	contractResult.GasUsed = gas
-	exportMemory, err := instance.Exports.GetMemory("memory")
-	if err != nil {
-		return
-	}
-	r.log.Debugf("instance id: %s, gas used:%d, exportMemory datasize %d字节 %d页", instanceInfo.id, gas, exportMemory.DataSize(), exportMemory.Size())
+	//exportMemory, err := instance.Exports.GetMemory("memory")
+	//if err != nil {
+	//	return
+	//}
+	//instanceNum[instanceInfo.id] = instanceNum[instanceInfo.id] + 1
+	//
+	//r.log.Debugf("instance id: %s, instance次数: %d , gas used:%d, exportMemory datasize %d字节 %d页", instanceInfo.id, instanceNum[instanceInfo.id], gas, exportMemory.DataSize(), exportMemory.Size())
+
 	return
 }

@@ -480,7 +480,7 @@ WASM_API_EXTERN size_t wasm_memory_data_size(const wasm_memory_t*);
 
 WASM_API_EXTERN wasm_memory_pages_t wasm_memory_size(const wasm_memory_t*);
 WASM_API_EXTERN bool wasm_memory_grow(wasm_memory_t*, wasm_memory_pages_t delta);
-
+WASM_API_EXTERN bool wasm_memory_reset(wasm_memory_t*);
 
 // Externals
 
