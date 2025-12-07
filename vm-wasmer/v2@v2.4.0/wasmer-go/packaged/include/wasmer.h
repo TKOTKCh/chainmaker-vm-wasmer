@@ -1794,6 +1794,8 @@ typedef struct wasmer_funcenv_t {
 
 typedef uint64_t (*wasmer_metering_cost_function_t)(enum wasmer_parser_operator_t wasm_operator);
 
+typedef uint64_t (*wasmer_metering_fn_cost_function_t)(const char * func_name);
+
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
@@ -1964,7 +1966,9 @@ void wasmer_metering_delete(struct wasmer_metering_t *_metering);
 uint64_t wasmer_metering_get_remaining_points(wasm_instance_t *instance);
 
 struct wasmer_metering_t *wasmer_metering_new(uint64_t initial_limit,
-                                              wasmer_metering_cost_function_t cost_function,const char * function_match);
+                                              wasmer_metering_cost_function_t cost_function,
+                                              wasmer_metering_fn_cost_function_t fn_cost_function,
+                                              const char * function_match);
 
 bool wasmer_metering_points_are_exhausted(wasm_instance_t *instance);
 

@@ -64,6 +64,7 @@ func (r *RuntimeInstance) Invoke(contract *commonPb.Contract, method string, byt
 		if panicErr != nil {
 			contractResult.Code = 1
 			contractResult.Message = fmt.Sprint(panicErr)
+			r.log.Infof("panic recover err:%v", panicErr)
 			if instanceInfo != nil {
 				instanceInfo.errCount++
 			}
@@ -79,7 +80,6 @@ func (r *RuntimeInstance) Invoke(contract *commonPb.Contract, method string, byt
 		//if err != nil {
 		//	panic(err)
 		//}
-
 		r.log.Debugf("depth>0 before get instance for tx: %s", txContext.GetTx().Payload.TxId)
 		instanceInfo = r.pool.GetInstance()
 		r.log.Debugf("depth>0 after get instance for tx: %s", txContext.GetTx().Payload.TxId)
@@ -92,7 +92,7 @@ func (r *RuntimeInstance) Invoke(contract *commonPb.Contract, method string, byt
 	}
 
 	instance := instanceInfo.wasmInstance
-	gasLimit := uint64(1e15)
+	gasLimit := uint64(1e19)
 	r.log.Debugf("gasLimit:%d", gasLimit-gasUsed)
 	instance.SetGasLimit(gasLimit - gasUsed)
 
@@ -104,28 +104,35 @@ func (r *RuntimeInstance) Invoke(contract *commonPb.Contract, method string, byt
 	sc.parameters = parameters
 	sc.Instance = instance
 	sc.SpecialTxType = protocol.ExecOrderTxTypeNormal
+	instanceNum[instanceInfo.id] = instanceNum[instanceInfo.id] + 1
+	//r.log.Infof("contract invoke start, tx:%s, instanceId:%s, instanceNum:%d, contractName:%s, contractMethod:%s, runtimeContractResult:%d, initialGasUsed:%d", txContext.GetTx().Payload.TxId, instanceInfo.id, instanceNum[instanceInfo.id], contract.Name, method, sc.ContractResult.Code, gasUsed)
 
+	//运行中如果死循环或者gas超值，它会自动中止，返回unreachable的err
 	err := sc.CallMethod(instance)
-	r.log.Infof("contract invoke finished, tx:%s, call method err is %s",
-		txContext.GetTx().Payload.TxId, err)
+	//r.log.Infof("contract invoke finished, tx:%s, call method err is %s",
+	//	txContext.GetTx().Payload.TxId, err)
 	if err != nil {
-		r.log.Errorf("contract invoke failed, %s, tx: %s", err, txContext.GetTx().Payload.TxId)
+		r.log.Infof("contract invoke failed, %s, tx: %s", err, txContext.GetTx().Payload.TxId)
 	}
 	specialTxType = sc.SpecialTxType
 
 	// gas Log
-	gas := gasLimit - instance.GetGasRemaining()
-	if instance.GetGasRemaining() <= 0 {
-		err = fmt.Errorf("contract invoke failed, out of gas %d/%d, tx: %s", gas, int64(protocol.GasLimit),
+	gasRemaining := instance.GetGasRemaining()
+	//这里用于判断是否属于gas超支的err
+	//注意这里判断条件是有问题的，以前是判断GetGasRemaining<=0，但是gasremaining是uint64无符号，
+	//所以如果gas消耗完，要么是GetGasRemaining=0或GetGasRemaining=uint64的max
+	if gasRemaining <= 0 || gasRemaining == 18446744073709551615 {
+		err = fmt.Errorf("contract invoke failed, out of gas %d, tx: %s", uint64(1e19),
 			txContext.GetTx().Payload.TxId)
 	}
+	gas := gasLimit - gasRemaining
 	logStr += fmt.Sprintf("used gas %d ", gas)
 	contractResult.GasUsed = gas
 
 	if err != nil {
 		contractResult.Code = 1
 		msg := fmt.Sprintf("contract invoke failed, %s, tx: %s", err.Error(), txContext.GetTx().Payload.TxId)
-		r.log.Errorf(msg)
+		r.log.Infof(msg)
 		contractResult.Message = msg
 		if method == InitContractFunc && txContext.GetBlockVersion() >= 2201 {
 			r.instancesManager.CloseAVmPool(contract)
@@ -142,18 +149,19 @@ func (r *RuntimeInstance) Invoke(contract *commonPb.Contract, method string, byt
 	}
 	contractResult.ContractEvent = sc.ContractEvent
 	contractResult.GasUsed = gas
-	exportMemory, err := instance.Exports.GetMemory("memory")
-	if err != nil {
-		return
-	}
+	//exportMemory, err := instance.Exports.GetMemory("memory")
+	//if err != nil {
+	//	return
+	//}
+	//r.log.Infof("contract invoke finished, tx: %s, contractName: %s, contractMethod: %s, runtimeContractResult: %d, instance id: %s, gas used: %d, exportMemory datasize %d字节 %d页", txContext.GetTx().Payload.TxId, contract.Name, method, sc.ContractResult.Code, instanceInfo.id, gas, exportMemory.DataSize(), exportMemory.Size())
+	r.log.Infof("contract invoke finished, tx:%s, instanceId:%s, instanceNum:%d, contractName:%s, contractMethod:%s, runtimeContractResult:%d, gasUsed:%d", txContext.GetTx().Payload.TxId, instanceInfo.id, instanceNum[instanceInfo.id], contract.Name, method, sc.ContractResult.Code, gas)
 
-	r.log.Infof("instance id: %s, gas used:%d, exportMemory datasize %d字节 %d页", instanceInfo.id, gas, exportMemory.DataSize(), exportMemory.Size())
 	return
 }
 
-//var (
-//	instanceNum = make(map[string]int)
-//)
+var (
+	instanceNum = make(map[string]int)
+)
 
 // Invoke contract by call vm, implement protocol.RuntimeInstance
 func (r *RuntimeInstance) InvokeTime(contract *commonPb.Contract, method string, byteCode []byte,
@@ -166,6 +174,7 @@ func (r *RuntimeInstance) InvokeTime(contract *commonPb.Contract, method string,
 	logStr := fmt.Sprintf("wasmer runtime invoke[%s]: ", txContext.GetTx().Payload.TxId)
 	//startTime := utils.CurrentTimeMillisSeconds()
 	startTime = time.Now().UnixNano()
+	//fmt.Printf("startInvoke:%d\n", startTime)
 	// set default return value
 	contractResult = &commonPb.ContractResult{
 		Code:    uint32(0),
@@ -178,6 +187,7 @@ func (r *RuntimeInstance) InvokeTime(contract *commonPb.Contract, method string,
 	defer func() {
 		//endTime := utils.CurrentTimeMillisSeconds()
 		endTime = time.Now().UnixNano()
+		//fmt.Printf("endInvoke:%d\n", endTime)
 		executionTime = float64(endTime-startTime) / 1e9
 
 		panicErr := recover()
@@ -214,10 +224,10 @@ func (r *RuntimeInstance) InvokeTime(contract *commonPb.Contract, method string,
 	}
 
 	instance := instanceInfo.wasmInstance
-	gasLimit := uint64(1e15)
+	gasLimit := uint64(1e19)
 	r.log.Debugf("gasLimit:%d", gasLimit-gasUsed)
 	instance.SetGasLimit(gasLimit - gasUsed)
-	//instance.SetGasLimit(1e15 - gasUsed)
+	//instance.SetGasLimit(1e19 - gasUsed)
 	var sc = NewSimContext(method, r.log, r.chainId)
 	defer sc.removeCtxPointer()
 	sc.Contract = contract
@@ -237,11 +247,14 @@ func (r *RuntimeInstance) InvokeTime(contract *commonPb.Contract, method string,
 	specialTxType = sc.SpecialTxType
 
 	// gas Log
-	gas := gasLimit - instance.GetGasRemaining()
-	if instance.GetGasRemaining() <= 0 {
-		err = fmt.Errorf("contract invoke failed, out of gas %d/%d, tx: %s", gas, int64(protocol.GasLimit),
+	gasRemaining := instance.GetGasRemaining()
+	//注意这里判断条件是有问题的，以前是判断GetGasRemaining<=0，但是gasremaining是uint64无符号，
+	//所以如果gas消耗完，要么是GetGasRemaining=0或GetGasRemaining=uint64的max
+	if gasRemaining <= 0 || gasRemaining == 18446744073709551615 {
+		err = fmt.Errorf("contract invoke failed, out of gas %d, tx: %s", uint64(1e19),
 			txContext.GetTx().Payload.TxId)
 	}
+	gas := gasLimit - gasRemaining
 	logStr += fmt.Sprintf("used gas %d ", gas)
 	contractResult.GasUsed = gas
 
@@ -259,13 +272,37 @@ func (r *RuntimeInstance) InvokeTime(contract *commonPb.Contract, method string,
 	}
 	contractResult.ContractEvent = sc.ContractEvent
 	contractResult.GasUsed = gas
-	//exportMemory, err := instance.Exports.GetMemory("memory")
-	//if err != nil {
-	//	return
-	//}
-	//instanceNum[instanceInfo.id] = instanceNum[instanceInfo.id] + 1
+	exportMemory, err := instance.Exports.GetMemory("memory")
+	if err != nil {
+		return
+	}
+	instanceNum[instanceInfo.id] = instanceNum[instanceInfo.id] + 1
 	//
-	//r.log.Debugf("instance id: %s, instance次数: %d , gas used:%d, exportMemory datasize %d字节 %d页", instanceInfo.id, instanceNum[instanceInfo.id], gas, exportMemory.DataSize(), exportMemory.Size())
+	//fmt.Println("memory used before reset:", exportMemory.Size())
+	//exportMemory.Reset()
+	//exportMemory, err = instance.Exports.GetMemory("memory")
+	//fmt.Println("memory used after reset:", exportMemory.Size())
+	//fmt.Println("export memory:", exportMemory.Size())
+	//fmt.Println("initial memory:", r.pool.initialMemory.Size())
+	//copy(exportMemory.Data()[:], r.pool.initialMemory.Data()[:])
+	//// 获取内存数据切片
+	//exportData := exportMemory.Data()
+	//initialData := r.pool.initialMemory.Data()
+	//
+	//// 计算要复制的长度（取两者中较小的）
+	//copyLen := len(initialData)
+	//if len(exportData) < copyLen {
+	//	copyLen = len(exportData)
+	//}
+	//
+	//// 复制初始内存数据到目标内存
+	//copy(exportData[:copyLen], initialData[:copyLen])
+	//
+	//// 如果目标内存更大，将剩余部分清零
+	//if len(exportData) > copyLen {
+	//	clear(exportData[copyLen:])
+	//}
+	r.log.Debugf("instance id: %s, instance次数: %d , gas used:%d, exportMemory datasize %d字节 %d页", instanceInfo.id, instanceNum[instanceInfo.id], gas, exportMemory.DataSize(), exportMemory.Size())
 
 	return
 }

@@ -309,7 +309,7 @@ func (s *WaciInstance) CallContract() int32 {
 }
 
 func (s *WaciInstance) callContractCore(isLen bool) int32 {
-	gasUsed := protocol.GasLimit - s.Sc.Instance.GetGasRemaining()
+	gasUsed := 1e19 - s.Sc.Instance.GetGasRemaining()
 	result, gas, specialTxType, err := wacsi.CallContract(s.Sc.Contract, s.RequestBody, s.Sc.TxSimContext, s.Memory,
 		s.Sc.GetStateCache, gasUsed, isLen)
 	if result == nil {
@@ -320,7 +320,7 @@ func (s *WaciInstance) callContractCore(isLen bool) int32 {
 		s.Sc.ContractEvent = append(s.Sc.ContractEvent, result.ContractEvent...)
 	}
 	s.Sc.SpecialTxType = specialTxType
-	s.Sc.Instance.SetGasLimit(protocol.GasLimit - gas)
+	s.Sc.Instance.SetGasLimit(1e19 - gas)
 	if err != nil {
 		s.recordMsg(err.Error())
 		return protocol.ContractSdkSignalResultFail

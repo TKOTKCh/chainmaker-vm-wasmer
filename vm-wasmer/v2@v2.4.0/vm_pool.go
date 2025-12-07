@@ -8,7 +8,7 @@ SPDX-License-Identifier: Apache-2.0
 package wasmer
 
 import (
-	"chainmaker.org/chainmaker/protocol/v2"
+	//"chainmaker.org/chainmaker/protocol/v2"
 	"errors"
 	"fmt"
 	"sync/atomic"
@@ -36,6 +36,10 @@ const (
 	defaultApplyThreshold = 100
 	// if wasmer instance invoke error more than N times, should close and discard this instance
 	defaultDiscardCount = 10
+)
+
+var (
+	newInstanceTime = float64(0)
 )
 
 // OpCode，wasm运算符表，在计算gas时是依据这些运算指令计算
@@ -560,10 +564,11 @@ const (
 // vm pool can grow and shrink on demand
 type vmPool struct {
 	// the corresponding contract info
-	contractId *commonPb.Contract
-	byteCode   []byte
-	store      *wasmergo.Store
-	module     *wasmergo.Module
+	contractId    *commonPb.Contract
+	byteCode      []byte
+	store         *wasmergo.Store
+	module        *wasmergo.Module
+	initialMemory *wasmergo.Memory
 	// wasmergo instance pool
 	instances chan *wrappedInstance
 	// current instance size in pool
@@ -644,6 +649,12 @@ func (p *vmPool) RevertInstance(instance *wrappedInstance) {
 			p.addInstanceC <- struct{}{}
 			p.CloseInstance(instance)
 		}()
+		//p.log.Debugf(" vmPool handling an `remove instance` Signal")
+		//p.currentSize--
+		//
+		//p.log.Debugf(" vmPool handling an `add instance` Signal")
+		//p.grow(1)
+		//p.CloseInstance(instance)
 	} else {
 		p.instances <- instance
 	}
@@ -666,122 +677,127 @@ func (p *vmPool) CloseInstance(instance *wrappedInstance) {
 	}
 }
 
+// 虚拟机测试相关变量
+var (
+	compileTime = float64(0)
+)
+
 func newVmPool(contractId *commonPb.Contract, byteCode []byte, log *logger.CMLogger) (*vmPool, error) {
 	//gas成本表opcode-cost
 	opmap := map[wasmergo.Opcode]uint32{
-		LocalGet:            1,
+		//LocalGet:            1,
 		Block:               0,
-		Br:                  2,
+		Br:                  0,
 		Call:                2,
-		Catch:               100000,
-		DataDrop:            100000,
+		Catch:               1000,
+		DataDrop:            1000,
 		Drop:                3,
-		ElemDrop:            100000,
+		ElemDrop:            1000,
 		Else:                2,
 		End:                 0,
-		F32Abs:              100000,
-		F32Add:              100000,
-		F32Ceil:             100000,
+		F32Abs:              1000,
+		F32Add:              1000,
+		F32Ceil:             1000,
 		F32Const:            0,
-		F32Copysign:         100000,
-		F32DemoteF64:        100000,
-		F32Div:              100000,
-		F32Eq:               100000,
-		F32Floor:            100000,
-		F32Ge:               100000,
-		F32Gt:               100000,
-		F32Le:               100000,
-		F32Load:             100000,
-		F32Lt:               100000,
-		F32Max:              100000,
-		F32Min:              100000,
-		F32Mul:              100000,
-		F32Ne:               100000,
-		F32Nearest:          100000,
-		F32Neg:              100000,
-		F32ReinterpretI32:   100000,
-		F32Sqrt:             100000,
-		F32Store:            100000,
-		F32Sub:              100000,
-		F32Trunc:            100000,
-		F32x4Abs:            100000,
-		F32x4Add:            100000,
-		F32x4Div:            100000,
-		F32x4Eq:             100000,
-		F32x4Ge:             100000,
-		F32x4Gt:             100000,
-		F32x4Le:             100000,
-		F32x4Lt:             100000,
-		F32x4Max:            100000,
-		F32x4Min:            100000,
-		F32x4Mul:            100000,
-		F32x4Ne:             100000,
-		F32x4Neg:            100000,
-		F32x4Splat:          100000,
-		F32x4Sqrt:           100000,
-		F32x4Sub:            100000,
-		F64Abs:              100000,
-		F64Add:              100000,
-		F64Ceil:             100000,
+		F32Copysign:         1000,
+		F32DemoteF64:        1000,
+		F32Div:              1000,
+		F32Eq:               1000,
+		F32Floor:            1000,
+		F32Ge:               1000,
+		F32Gt:               1000,
+		F32Le:               1000,
+		F32Load:             1000,
+		F32Lt:               1000,
+		F32Max:              1000,
+		F32Min:              1000,
+		F32Mul:              1000,
+		F32Ne:               1000,
+		F32Nearest:          1000,
+		F32Neg:              1000,
+		F32ReinterpretI32:   1000,
+		F32Sqrt:             1000,
+		F32Store:            1000,
+		F32Sub:              1000,
+		F32Trunc:            1000,
+		F32x4Abs:            1000,
+		F32x4Add:            1000,
+		F32x4Div:            1000,
+		F32x4Eq:             1000,
+		F32x4Ge:             1000,
+		F32x4Gt:             1000,
+		F32x4Le:             1000,
+		F32x4Lt:             1000,
+		F32x4Max:            1000,
+		F32x4Min:            1000,
+		F32x4Mul:            1000,
+		F32x4Ne:             1000,
+		F32x4Neg:            1000,
+		F32x4Splat:          1000,
+		F32x4Sqrt:           1000,
+		F32x4Sub:            1000,
+		F64Abs:              1000,
+		F64Add:              1000,
+		F64Ceil:             1000,
 		F64Const:            0,
-		F64Copysign:         100000,
-		F64Div:              100000,
-		F64Eq:               100000,
-		F64Floor:            100000,
-		F64Ge:               100000,
-		F64Gt:               100000,
-		F64Le:               100000,
-		F64Load:             100000,
-		F64Lt:               100000,
-		F64Max:              100000,
-		F64Min:              100000,
-		F64Mul:              100000,
-		F64Ne:               100000,
-		F64Nearest:          100000,
-		F64Neg:              100000,
-		F64PromoteF32:       100000,
-		F64ReinterpretI64:   100000,
-		F64Sqrt:             100000,
-		F64Store:            100000,
-		F64Sub:              100000,
-		F64Trunc:            100000,
-		F64x2Abs:            100000,
-		F64x2Add:            100000,
-		F64x2Div:            100000,
-		F64x2Eq:             100000,
-		F64x2Ge:             100000,
-		F64x2Gt:             100000,
-		F64x2Le:             100000,
-		F64x2Lt:             100000,
-		F64x2Max:            100000,
-		F64x2Min:            100000,
-		F64x2Mul:            100000,
-		F64x2Ne:             100000,
-		F64x2Neg:            100000,
-		F64x2Splat:          100000,
-		F64x2Sqrt:           100000,
-		F64x2Sub:            100000,
-		I16x8Add:            100000,
-		I16x8Eq:             100000,
-		I16x8Mul:            100000,
-		I16x8Ne:             100000,
-		I16x8Neg:            100000,
-		I16x8Shl:            100000,
-		I16x8Splat:          100000,
-		I16x8Sub:            100000,
+		F64Copysign:         1000,
+		F64Div:              1000,
+		F64Eq:               1000,
+		F64Floor:            1000,
+		F64Ge:               1000,
+		F64Gt:               1000,
+		F64Le:               1000,
+		F64Load:             1000,
+		F64Lt:               1000,
+		F64Max:              1000,
+		F64Min:              1000,
+		F64Mul:              1000,
+		F64Ne:               1000,
+		F64Nearest:          1000,
+		F64Neg:              1000,
+		F64PromoteF32:       1000,
+		F64ReinterpretI64:   1000,
+		F64Sqrt:             1000,
+		F64Store:            1000,
+		F64Sub:              1000,
+		F64Trunc:            1000,
+		F64x2Abs:            1000,
+		F64x2Add:            1000,
+		F64x2Div:            1000,
+		F64x2Eq:             1000,
+		F64x2Ge:             1000,
+		F64x2Gt:             1000,
+		F64x2Le:             1000,
+		F64x2Lt:             1000,
+		F64x2Max:            1000,
+		F64x2Min:            1000,
+		F64x2Mul:            1000,
+		F64x2Ne:             1000,
+		F64x2Neg:            1000,
+		F64x2Splat:          1000,
+		F64x2Sqrt:           1000,
+		F64x2Sub:            1000,
+		I16x8Add:            1000,
+		I16x8Eq:             1000,
+		I16x8Mul:            1000,
+		I16x8Ne:             1000,
+		I16x8Neg:            1000,
+		I16x8Shl:            1000,
+		I16x8Splat:          1000,
+		I16x8Sub:            1000,
 		I32Add:              1,
 		I32And:              1,
-		I32AtomicLoad:       100000,
-		I32AtomicRmwAdd:     100000,
-		I32AtomicRmwAnd:     100000,
-		I32AtomicRmwCmpxchg: 100000,
-		I32AtomicRmwOr:      100000,
-		I32AtomicRmwSub:     100000,
-		I32AtomicRmwXchg:    100000,
-		I32AtomicRmwXor:     100000,
-		I32AtomicStore:      100000,
-		I32AtomicStore16:    100000,
-		I32AtomicStore8:     100000,
+		I32AtomicLoad:       1000,
+		I32AtomicRmwAdd:     1000,
+		I32AtomicRmwAnd:     1000,
+		I32AtomicRmwCmpxchg: 1000,
+		I32AtomicRmwOr:      1000,
+		I32AtomicRmwSub:     1000,
+		I32AtomicRmwXchg:    1000,
+		I32AtomicRmwXor:     1000,
+		I32AtomicStore:      1000,
+		I32AtomicStore16:    1000,
+		I32AtomicStore8:     1000,
 		I32Clz:              105,
 		I32Const:            0,
 		I32Ctz:              105,
@@ -800,30 +816,30 @@ func newVmPool(contractId *commonPb.Contract, byteCode []byte, log *logger.CMLog
 		I32Store16:          3,
 		I32Store8:           3,
 		I32Sub:              1,
-		I32WrapI64:          3,
+		I32WrapI64:          1,
 		I32Xor:              1,
-		I32x4Add:            100000,
-		I32x4Eq:             100000,
-		I32x4Mul:            100000,
-		I32x4Ne:             100000,
-		I32x4Neg:            100000,
-		I32x4Shl:            100000,
-		I32x4Splat:          100000,
-		I32x4Sub:            100000,
+		I32x4Add:            1000,
+		I32x4Eq:             1000,
+		I32x4Mul:            1000,
+		I32x4Ne:             1000,
+		I32x4Neg:            1000,
+		I32x4Shl:            1000,
+		I32x4Splat:          1000,
+		I32x4Sub:            1000,
 		I64Add:              1,
 		I64And:              1,
-		I64AtomicLoad:       100000,
-		I64AtomicRmwAdd:     100000,
-		I64AtomicRmwAnd:     100000,
-		I64AtomicRmwCmpxchg: 100000,
-		I64AtomicRmwOr:      100000,
-		I64AtomicRmwSub:     100000,
-		I64AtomicRmwXchg:    100000,
-		I64AtomicRmwXor:     100000,
-		I64AtomicStore:      100000,
-		I64AtomicStore16:    100000,
-		I64AtomicStore32:    100000,
-		I64AtomicStore8:     100000,
+		I64AtomicLoad:       1000,
+		I64AtomicRmwAdd:     1000,
+		I64AtomicRmwAnd:     1000,
+		I64AtomicRmwCmpxchg: 1000,
+		I64AtomicRmwOr:      1000,
+		I64AtomicRmwSub:     1000,
+		I64AtomicRmwXchg:    1000,
+		I64AtomicRmwXor:     1000,
+		I64AtomicStore:      1000,
+		I64AtomicStore16:    1000,
+		I64AtomicStore32:    1000,
+		I64AtomicStore8:     1000,
 		I64Clz:              105,
 		I64Const:            0,
 		I64Ctz:              105,
@@ -844,56 +860,68 @@ func newVmPool(contractId *commonPb.Contract, byteCode []byte, log *logger.CMLog
 		I64Store8:           3,
 		I64Sub:              1,
 		I64Xor:              1,
-		I64x2Add:            100000,
-		I64x2Neg:            100000,
-		I64x2Shl:            100000,
-		I64x2Splat:          100000,
-		I64x2Sub:            100000,
-		I8x16Add:            100000,
-		I8x16Eq:             100000,
-		I8x16Ne:             100000,
-		I8x16Neg:            100000,
-		I8x16Shl:            100000,
-		I8x16Splat:          100000,
-		I8x16Sub:            100000,
+		I64x2Add:            1000,
+		I64x2Neg:            1000,
+		I64x2Shl:            1000,
+		I64x2Splat:          1000,
+		I64x2Sub:            1000,
+		I8x16Add:            1000,
+		I8x16Eq:             1000,
+		I8x16Ne:             1000,
+		I8x16Neg:            1000,
+		I8x16Shl:            1000,
+		I8x16Splat:          1000,
+		I8x16Sub:            1000,
 		If:                  0,
 		Loop:                0,
-		MemoryCopy:          100000,
-		MemoryFill:          100000,
-		MemoryGrow:          100000,
-		MemoryInit:          100000,
-		MemorySize:          10000000,
+		MemoryCopy:          1000,
+		MemoryFill:          1000,
+		MemoryGrow:          1000,
+		MemoryInit:          1000,
+		MemorySize:          1000,
 		Nop:                 0,
-		RefFunc:             100000,
-		RefNull:             100000,
-		Rethrow:             100000,
+		RefFunc:             1000,
+		RefNull:             1000,
+		Rethrow:             1000,
 		Return:              2,
 		Select:              3,
-		TableCopy:           100000,
-		TableFill:           100000,
-		TableGet:            100000,
-		TableGrow:           100000,
-		TableInit:           100000,
-		TableSet:            100000,
-		Throw:               100000,
-		Try:                 100000,
+		TableCopy:           1000,
+		TableFill:           1000,
+		TableGet:            1000,
+		TableGrow:           1000,
+		TableInit:           1000,
+		TableSet:            1000,
+		Throw:               1000,
+		Try:                 1000,
 		Unreachable:         0,
-		V128And:             100000,
-		V128Bitselect:       100000,
+		V128And:             1000,
+		V128Bitselect:       1000,
 		V128Const:           0,
-		V128Load:            100000,
-		V128Not:             100000,
-		V128Or:              100000,
-		V128Store:           100000,
-		V128Xor:             100000,
+		V128Load:            1000,
+		V128Not:             1000,
+		V128Or:              1000,
+		V128Store:           1000,
+		V128Xor:             1000,
 	}
-	//opmap = map[wasmergo.Opcode]uint32{
-	//	//LocalGet: 2,
-	//	//MemoryGrow: 1,
-	//}
+
+
+	fnmap := map[string]uint32{
+		"math":                  1000,
+		"crypto":                1000,
+		"fmt.Errorf":            1000,
+		"fmt.Sprintf":           1000,
+		"strconv.ParseInt":      1000,
+		"strconv.FormatInt":     1000,
+		"strings.Join":          1000,
+		"strings.TrimRightFunc": 1000,
+		"strings.TrimFunc":      1000,
+		"strings.TrimSpace":     1000,
+		"strings.lastIndexFunc": 1000,
+	}
 	config := wasmergo.NewConfig()
 	fmt.Printf("opmap length %d \n", len(opmap))
-	config.PushMeteringMiddleware(protocol.GasLimit, opmap, ".*")
+
+	config.PushMeteringMiddleware(1e19, opmap, fnmap, "")
 
 	//如果不设置默认上限为256页
 	config.MaxPagesLimit(512)
@@ -904,8 +932,10 @@ func newVmPool(contractId *commonPb.Contract, byteCode []byte, log *logger.CMLog
 		return nil, fmt.Errorf("[%s_%s], byte code validation failed, err = %v", contractId.Name, contractId.Version, err)
 	}
 
+	startTime := time.Now().UnixNano()
 	module, err := wasmergo.NewModule(store, byteCode, log)
-
+	endTime := time.Now().UnixNano()
+	compileTime = float64(endTime-startTime) / 1e9
 	if err != nil {
 		return nil, fmt.Errorf("[%s_%s], byte code compile failed", contractId.Name, contractId.Version)
 	}
@@ -930,7 +960,7 @@ func newVmPool(contractId *commonPb.Contract, byteCode []byte, log *logger.CMLog
 	}
 
 	instance, err := vmPool.newInstanceFromModule()
-	//vmPool.initialMemory, err = instance.wasmInstance.Exports.GetMemory("memory")
+	vmPool.initialMemory, err = instance.wasmInstance.Exports.GetMemory("memory")
 	if err != nil {
 		return nil, fmt.Errorf("[%s_%s], byte code compile failed, %s", contractId.Name, contractId.Version, err.Error())
 	}
@@ -1108,6 +1138,8 @@ func (p *vmPool) NewInstanceFromByteCode() (*wrappedInstance, error) {
 }
 
 func (p *vmPool) newInstanceFromModule() (*wrappedInstance, error) {
+	startTime := time.Now().UnixNano()
+	fmt.Printf("startNew:%d\n", startTime)
 	vb := GetVmBridgeManager()
 	env := CMEnvironment{
 		instance: nil,
@@ -1159,7 +1191,18 @@ func (p *vmPool) newInstanceFromModule() (*wrappedInstance, error) {
 		errCount:     0,
 	}
 	p.log.Infof("new instance id: %s", instance.id)
-
+	//WarmUpFunction := "testgasWarmUp"
+	//runtimeFn, err := wasmInstance.Exports.GetRawFunction(WarmUpFunction)
+	//if err != nil {
+	//	//p.log.Infof("WarmUpFunction [%s] not export, err = %v", WarmUpFunction, err)
+	//} else {
+	//	defer runtimeFn.Close()
+	//	runtimeFn.Call()
+	//	p.log.Infof("WarmUpFunction [%s] success", WarmUpFunction)
+	//}
+	endTime := time.Now().UnixNano()
+	fmt.Printf("endNew:%d\n", endTime)
+	newInstanceTime += float64(endTime-startTime) / 1e9
 	return instance, nil
 }
 

@@ -134,19 +134,19 @@ func (sc *SimContext) callContract(instance *wasmer.Instance, methodName string,
 		memory[nth] = bytes[nth]
 	}
 
-	// Calls the `invoke` exported function. Given the pointer to the subject.
-	gasLimit := uint64(1e15)
-	instance.SetGasLimit(gasLimit - 0)
 	exportFunc, err := instance.Exports.GetRawFunction(methodName)
 	if err != nil {
-		// add compatibility for wasmer-1.0
+		//if methodName == "init_contract" {
+		//	sc.Log.Debugf("init_contract not export")
+		//	return nil
+		//}
 		if sc.TxSimContext.GetBlockVersion() < 2200 {
 			return fmt.Errorf("method [%s] not export", methodName)
 		}
 		return fmt.Errorf("find method [%s] failed, err = %v", methodName, err)
 	}
 	defer exportFunc.Close()
-
+	// Calls the `invoke` exported function. Given the pointer to the subject.
 	_, err = exportFunc.Call()
 	if err != nil {
 		return err
@@ -159,7 +159,7 @@ func (sc *SimContext) callContract(instance *wasmer.Instance, methodName string,
 // CallDeallocate deallocate vm memory before closing the instance
 func CallDeallocate(instance *wasmer.Instance) error {
 	// TODO 这里setgaslimit是否会影响gas计量？
-	instance.SetGasLimit(protocol.GasLimit)
+	instance.SetGasLimit(1e19)
 	// TODO 这里deallocate，主要是因为原本做法参数是写在合约实例的全局变量，这里把合约实例的参数argsmap设置为空
 	deallocFunc, err := instance.Exports.GetFunction(protocol.ContractDeallocateMethod)
 	if err != nil {

@@ -23,6 +23,7 @@ import (
 )
 
 var (
+	wg                   sync.WaitGroup
 	sdkConfigPaths       []string      // 被压测的cert模式链配置文件数组
 	sdkPKConfigPaths     []string      // 被压测的public模式链配置文件数组
 	SdkPWKConfigPaths    []string      // 被压测的permissionedWithKey模式链配置文件数组
@@ -344,8 +345,8 @@ func readWriteSet(txSimContext protocol.TxSimContext) ([]byte, error) {
 // TestInvoke comment at next version
 func TestInvoke(t *testing.T) {
 
-	contractMethod := "mint"
-	ContractName := "erc721"
+	contractMethod := "bigNumCal"
+	ContractName := "compute-test"
 	contractType := "go"
 	testTime := 100
 	filePath := prepareFile(ContractName, contractType)
@@ -368,7 +369,7 @@ func TestInvoke(t *testing.T) {
 
 	parameters := prepareFunc(ContractName, contractMethod)
 	fillingBaseParams(parameters)
-	successCnt := 0
+	successCnt := int32(0)
 	totalExecutionTime := float64(0)
 	gasDist := make(map[uint64]uint64)
 
@@ -391,10 +392,9 @@ func TestInvoke(t *testing.T) {
 			totalExecutionTime += executionTime
 		}
 	}
-
 	log.Infof(fmt.Sprint(gasDist))
 	maxkey := uint64(0)
-	minkey := uint64(1e15)
+	minkey := uint64(1e19)
 	for key, _ := range gasDist {
 		if key > maxkey {
 			maxkey = key
@@ -406,19 +406,93 @@ func TestInvoke(t *testing.T) {
 	}
 	log.Infof("maxkey = %d, minkey = %d, minus = %d, minus/minkey = %.15f\n", maxkey, minkey, maxkey-minkey, float64(maxkey-minkey)/float64(minkey))
 	TPS := float64(successCnt) / totalExecutionTime
-	log.Infof("successCnt=%d totalExecutionTime=%v TPS = %v \n", successCnt, totalExecutionTime, TPS)
+	log.Infof("successCnt=%d compileTime=%v totalExecutionTime=%v TPS = %v \n", successCnt, compileTime, totalExecutionTime, TPS)
 	exRatio := float64(ExportMemoryTime) / float64(totalExecutionTime*1e9) * 100
 	rfRatio := float64(RealFuncTime) / float64(totalExecutionTime*1e9) * 100
 	rrRatio := float64(ReturnResultTime) / float64(totalExecutionTime*1e9) * 100
 	rpRatio := float64(ReadParamTime) / float64(totalExecutionTime*1e9) * 100
+	niRatio := float64(newInstanceTime) / float64(totalExecutionTime) * 100
 	//tmRatio := float64(TotalFuncTime) / float64(TotalContractTime) * 100
 	ttRatio := float64(TotalFuncTime) / float64(totalExecutionTime*1e9) * 100
 	fmt.Printf("内存导入 平均占比: %.2f%%\n", exRatio)
 	fmt.Printf("读取参数 平均占比: %.2f%%\n", rpRatio)
 	fmt.Printf("实际函数 平均占比: %.2f%%\n", rfRatio)
 	fmt.Printf("结果拷贝 平均占比: %.2f%%\n", rrRatio)
+	fmt.Printf("创建实例 平均占比: %.2f%%\n", niRatio)
+	fmt.Printf("创建实例 平均开销: %.2f%%\n", float64(newInstanceTime))
 	//fmt.Printf("TotalFuncTime/TotalContractTime 平均占比: %.2f%%\n", tmRatio)
 	fmt.Printf("TotalFuncTime/totalExecutionTime 平均占比: %.2f%%\n", ttRatio)
 	minus := totalExecutionTime - float64(TotalContractTime)/1e9
 	fmt.Printf("minus %f", minus)
+	// 并发执行测试
+	//for j := 0; j < testTime; j++ {
+	//	wg.Add(1)
+	//	go func(testId int) {
+	//		defer wg.Done()
+	//
+	//		txSimContext := prepareTxSimContext(ChainId, BlockVersion, ContractName, contractMethod, parameters, SnapshotMock{})
+	//		contractResult, _, _, _, executionTime := runtimeInst.InvokeTime(&contractId, contractMethod, wasmBytes, parameters, txSimContext, 0)
+	//
+	//		log.Infof("testid = %d contractResult = %v \n", testId, contractResult)
+	//
+	//		// 更新 gasDist（需要加锁）
+	//		gasUsed := contractResult.GasUsed
+	//		mu.Lock()
+	//		gasDist[gasUsed]++
+	//		mu.Unlock()
+	//
+	//		// 解析合约返回结果
+	//		resultList := strings.Split(string(contractResult.Result), ",")
+	//		result := resultList[len(resultList)-1]
+	//		index := strings.Index(result, " ")
+	//		ContractTime, _ := strconv.Atoi(result[index+1:])
+	//
+	//		// 更新统计信息（需要原子操作或加锁）
+	//		if contractResult.Code == 0 {
+	//			atomic.AddInt32(&successCnt, 1)
+	//			mu.Lock()
+	//			totalExecutionTime += executionTime
+	//			mu.Unlock()
+	//			atomic.AddInt64(&TotalContractTime, int64(ContractTime))
+	//		}
+	//	}(j)
+	//}
+	//// 等待所有 goroutine 完成
+	//wg.Wait()
+	//
+	//// 打印统计信息
+	//log.Infof(fmt.Sprint(gasDist))
+	//maxkey := uint64(0)
+	//minkey := uint64(1e19)
+	//for key := range gasDist {
+	//	if key > maxkey {
+	//		maxkey = key
+	//	}
+	//	if minkey > key {
+	//		minkey = key
+	//	}
+	//}
+	//log.Infof("maxkey = %d, minkey = %d, minus = %d, minus/minkey = %.15f\n",
+	//	maxkey, minkey, maxkey-minkey, float64(maxkey-minkey)/float64(minkey))
+	//
+	//TPS := float64(successCnt) / totalExecutionTime
+	//log.Infof("successCnt=%d totalExecutionTime=%v TPS = %v \n", successCnt, totalExecutionTime, TPS)
+	//
+	//// 计算各部分耗时占比（确保 TotalContractTime 和 totalExecutionTime 是并发安全的）
+	//exRatio := float64(ExportMemoryTime) / (totalExecutionTime * 1e9) * 100
+	//rfRatio := float64(RealFuncTime) / (totalExecutionTime * 1e9) * 100
+	//rrRatio := float64(ReturnResultTime) / (totalExecutionTime * 1e9) * 100
+	//rpRatio := float64(ReadParamTime) / (totalExecutionTime * 1e9) * 100
+	//niRatio := float64(newInstanceTime) / totalExecutionTime * 100
+	//ttRatio := float64(TotalFuncTime) / (totalExecutionTime * 1e9) * 100
+	//
+	//fmt.Printf("内存导入 平均占比: %.2f%%\n", exRatio)
+	//fmt.Printf("读取参数 平均占比: %.2f%%\n", rpRatio)
+	//fmt.Printf("实际函数 平均占比: %.2f%%\n", rfRatio)
+	//fmt.Printf("结果拷贝 平均占比: %.2f%%\n", rrRatio)
+	//fmt.Printf("创建实例 平均占比: %.2f%%\n", niRatio)
+	//fmt.Printf("创建实例 平均开销: %.2f%%\n", float64(newInstanceTime))
+	//fmt.Printf("TotalFuncTime/totalExecutionTime 平均占比: %.2f%%\n", ttRatio)
+	//minus := totalExecutionTime - float64(TotalContractTime)/1e9
+	//fmt.Printf("minus %f", minus)
 }

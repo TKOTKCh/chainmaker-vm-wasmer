@@ -1,9 +1,16 @@
+//go:build !custom_wasmer_runtime
+// +build !custom_wasmer_runtime
+
 package wasmer
 
 // #include <wasmer.h>
 // extern uint64_t metering_delegate(enum wasmer_parser_operator_t op);
+// extern uint64_t fn_metering_delegate(char * func_name);
 import "C"
-import "unsafe"
+import (
+	"strings"
+	"unsafe"
+)
 
 // CompilerKind represents the possible compiler types.
 type CompilerKind C.wasmer_backend_t
@@ -697,6 +704,9 @@ const (
 
 var opCodeMap map[Opcode]uint32 = nil
 
+// 函数预订价
+var functionMap map[string]uint32 = nil
+
 //export metering_delegate
 func metering_delegate(op C.wasmer_parser_operator_t) C.uint64_t {
 	// a simple alogorithm for now just map from opcode to cost directly
@@ -708,6 +718,34 @@ func metering_delegate(op C.wasmer_parser_operator_t) C.uint64_t {
 	return C.uint64_t(v)
 }
 
+//export fn_metering_delegate
+func fn_metering_delegate(cStr *C.char) C.uint64_t {
+	goStr := C.GoString(cStr)
+
+	//cost, exists := functionMap[goStr]
+	//if !exists {
+	//	return 0
+	//}
+	//return C.uint64_t(cost)
+
+	// 遍历 functionMap，寻找匹配的 key
+	for key, cost := range functionMap {
+		if strings.Contains(key, ".") {
+			// 完全匹配（如 "fmt.Sprintf" 必须完全等于 key）
+			if goStr == key {
+				return C.uint64_t(cost)
+			}
+		} else {
+			// 前缀匹配（如 "fmt" 匹配 "fmt.Errorf"）
+			if strings.HasPrefix(goStr, key) {
+				return C.uint64_t(cost)
+			}
+		}
+	}
+
+	return 0 // 无匹配项
+}
+
 // PushMeteringMiddleware allows the middleware metering to be engaged on a map of opcode to cost
 //
 //	  config := NewConfig()
@@ -717,14 +755,28 @@ func metering_delegate(op C.wasmer_parser_operator_t) C.uint64_t {
 //			I32Add: 	4,
 //		 }
 //	  config.PushMeteringMiddleware(7865444, opmap)
-func (self *Config) PushMeteringMiddleware(maxGasUsageAllowed uint64, opMap map[Opcode]uint32, function_match string) *Config {
+func (self *Config) PushMeteringMiddleware(maxGasUsageAllowed uint64, opMap map[Opcode]uint32, fnMap map[string]uint32, function_match string) *Config {
 	if opCodeMap == nil {
 		// REVIEW only allowing this to be set once
 		opCodeMap = opMap
 	}
+	if functionMap == nil {
+		functionMap = fnMap
+	}
 	cfunction_match := C.CString(function_match)
 	defer C.free(unsafe.Pointer(cfunction_match))
-	C.wasm_config_push_middleware(self.inner(), C.wasmer_metering_as_middleware(C.wasmer_metering_new(getPlatformLong(maxGasUsageAllowed), (*[0]byte)(C.metering_delegate), cfunction_match)))
+	C.wasm_config_push_middleware(
+		self.inner(),
+		C.wasmer_metering_as_middleware(C.wasmer_metering_new(
+			getPlatformLong(maxGasUsageAllowed),
+			(*[0]byte)(C.metering_delegate),
+			(*[0]byte)(C.fn_metering_delegate),
+			cfunction_match,
+		)),
+	)
+	//C.wasm_config_push_middleware(self.inner(),
+	//	C.wasmer_metering_as_middleware(
+	//		C.wasmer_metering_new(getPlatformLong(maxGasUsageAllowed), (*[0]byte)(C.metering_delegate), cfunction_match)))
 	return self
 }
 
@@ -769,8 +821,20 @@ func (self *Config) MaxPagesLimit(maxPagesLimited uint32) *Config {
 func (self *Config) PushMeteringMiddlewarePtr(maxGasUsageAllowed uint64, p unsafe.Pointer, function_match string) *Config {
 	cfunction_match := C.CString(function_match)
 	defer C.free(unsafe.Pointer(cfunction_match))
-	C.wasm_config_push_middleware(self.inner(), C.wasmer_metering_as_middleware(C.wasmer_metering_new(getPlatformLong(maxGasUsageAllowed), (*[0]byte)(p), cfunction_match)))
+	//C.wasm_config_push_middleware(self.inner(), C.wasmer_metering_as_middleware(C.wasmer_metering_new(getPlatformLong(maxGasUsageAllowed), (*[0]byte)(p), cfunction_match)))
+	C.wasm_config_push_middleware(
+		self.inner(),
+		C.wasmer_metering_as_middleware(
+			C.wasmer_metering_new(
+				getPlatformLong(maxGasUsageAllowed),
+				(*[0]byte)(p),                      // 操作码计费函数
+				(*[0]byte)(C.fn_metering_delegate), // 新增：函数名计费函数
+				cfunction_match,                    // 函数匹配模式
+			),
+		),
+	)
 	return self
+
 }
 
 // UseLLVMCompiler sets the compiler to LLVM in the configuration.

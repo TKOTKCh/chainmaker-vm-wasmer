@@ -111,7 +111,8 @@ func (s SnapshotMock) GetKey(txExecSeq int, contractName string, key []byte) ([]
 }
 
 func (s SnapshotMock) GetTxRWSetTable() []*commonPb.TxRWSet {
-	panic("implement me")
+	return nil
+	//panic("implement me")
 }
 
 func (s SnapshotMock) GetTxResultMap() map[string]*commonPb.Result {
@@ -135,7 +136,8 @@ func (s SnapshotMock) SetPreSnapshot(snapshot protocol.Snapshot) {
 }
 
 func (s SnapshotMock) GetBlockHeight() uint64 {
-	panic("implement me")
+	//panic("implement me")
+	return uint64(1)
 }
 
 func (s SnapshotMock) GetBlockProposer() *accessPb.Member {
