@@ -9,8 +9,11 @@ package wasmer
 
 import (
 	"chainmaker.org/chainmaker/store/v2/types"
+	"crypto/sha256"
+
 	"errors"
 	"fmt"
+	"math/big"
 	"sync"
 
 	"chainmaker.org/chainmaker/logger/v2"
@@ -78,8 +81,8 @@ func logMessage(environment interface{}, args []wasmer.Value) ([]wasmer.Value, e
 	pointer := args[0].I32()
 	length := args[1].I32()
 	gotText := string(exportMemory.Data()[pointer : pointer+length])
-	log.Debug("wasmer log>> " + gotText)
-
+	//log.Debug("wasmer log>> " + gotText)
+	_ = gotText
 	return []wasmer.Value{}, nil
 }
 
@@ -177,17 +180,85 @@ func sysCall(environment interface{}, args []wasmer.Value) ([]wasmer.Value, erro
 		ChainId:     simContext.ChainId,
 	}
 
-	log.Debugf("### enter syscall handling, method = '%v'", method)
+	//log.Debugf("### enter syscall handling, method = '%v'", method)
 	var ret int32
 	if ret = waciInstance.invoke(method); ret == protocol.ContractSdkSignalResultFail {
 		log.Infof("invoke WaciInstance error: method = %v", method)
 	}
 
-	log.Debugf("### leave syscall handling, method = '%v'", method)
+	//log.Debugf("### leave syscall handling, method = '%v'", method)
 
 	return []wasmer.Value{
 		wasmer.NewValue(ret, wasmer.I32),
 	}, nil
+}
+
+//export nativeBigExp
+func nativeBigExp(environment interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+
+	//startTime1 := time.Now().UnixNano()
+	env, ok := environment.(*CMEnvironment)
+	if !ok {
+		return nil, errors.New("args 'environment' is not *CMEnvironment type")
+	}
+	//instance := env.instance
+	//if instance == nil {
+	//	return nil, errors.New("instance at Environment is nil")
+	//}
+	//
+	//exportMemory, err := instance.Exports.GetMemory("memory")
+	//if err != nil {
+	//	return nil, err
+	//}
+	//memory := exportMemory.Data()
+	memory := env.memory.Data()
+	//endTime1 := time.Now().UnixNano()
+
+	num := args[0].I64()
+	exp := args[1].I64()
+	mod := args[2].I64()
+	resultPtr := args[3].I32()
+	//endTime2 := time.Now().UnixNano()
+
+	result := new(big.Int).Exp(big.NewInt(num), big.NewInt(exp), big.NewInt(mod))
+	//endTime3 := time.Now().UnixNano()
+
+	resultBytes := result.Bytes()
+	endIndex := int(resultPtr) + len(resultBytes)
+	copy(memory[resultPtr:endIndex], resultBytes)
+	//copy([resultPtr:endIndex], resultBytes)
+	//endTime4 := time.Now().UnixNano()
+
+	//ExportMemoryTime += endTime1 - startTime1
+	//ReadParamTime += endTime2 - endTime1
+	//RealFuncTime += endTime3 - endTime2
+	//ReturnResultTime += endTime4 - endTime3
+	//TotalFuncTime += endTime4 - startTime1
+
+	return []wasmer.Value{wasmer.NewValue(len(resultBytes), wasmer.I32)}, nil
+}
+
+//export nativeSha256
+func nativeSha256(environment interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+	env, ok := environment.(*CMEnvironment)
+	if !ok {
+		return nil, errors.New("args 'environment' is not *CMEnvironment type")
+	}
+	//内存拷贝，解析参数
+	memory := env.memory.Data()
+	hashInputPtr := args[0].I32()
+	hashInputLen := args[1].I32()
+	hashResultPtr := args[2].I32()
+	hashInput := make([]byte, hashInputLen)
+	copy(hashInput, memory[hashInputPtr:hashInputPtr+hashInputLen])
+	var hashResult [32]byte
+
+	//执行函数
+	hashResult = sha256.Sum256(hashInput)
+
+	//函数结果拷回
+	copy(memory[hashResultPtr:hashResultPtr+32], hashResult[:])
+	return []wasmer.Value{wasmer.NewValue(protocol.ContractSdkSignalResultSuccess, wasmer.I32)}, nil
 }
 
 // nolint
@@ -526,12 +597,35 @@ func (b *vmBridgeManager) GetImports(store *wasmer.Store, env *CMEnvironment, im
 	}
 	logmessagewithtype := wasmer.NewFunctionWithEnvironment(store, logmessagewithtypeFt, env, logMessageWithType)
 
+	// nativeBigExp
+	nativebigexpFt := wasmer.NewFunctionType(
+		wasmer.NewValueTypes(wasmer.I64, wasmer.I64, wasmer.I64, wasmer.I32),
+		wasmer.NewValueTypes(wasmer.I32),
+	)
+	if nativebigexpFt == nil {
+		return nil, errors.New("new function type for nativeBigExp failed")
+	}
+	nativebigexp := wasmer.NewFunctionWithEnvironment(store, nativebigexpFt, env, nativeBigExp)
+
+	//// nativeBcx
+	//nativebcxFt := wasmer.NewFunctionType(
+	//	wasmer.NewValueTypes(wasmer.I32, wasmer.I32, wasmer.I32, wasmer.I32, wasmer.I32, wasmer.I32),
+	//	wasmer.NewValueTypes(wasmer.I32),
+	//)
+	//if nativebcxFt == nil {
+	//	return nil, errors.New("new function type for nativeBcx failed")
+	//}
+	//nativebcx := wasmer.NewFunctionWithEnvironment(store, nativebcxFt, env, nativeBcx)
+
 	imports.Register(
 		"env",
 		map[string]wasmer.IntoExtern{
 			"sys_call":              syscall,
 			"log_message":           logmessage,
 			"log_message_with_type": logmessagewithtype,
+			//"native_sha":            nativesha256,
+			"native_BigExp": nativebigexp,
+			//"native_bcx":    nativebcx,
 		})
 
 	readFt := wasmer.NewFunctionType(wasmer.NewValueTypes(wasmer.I32, wasmer.I32, wasmer.I32, wasmer.I32),
