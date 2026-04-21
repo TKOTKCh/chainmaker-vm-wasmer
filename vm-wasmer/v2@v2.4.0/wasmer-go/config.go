@@ -8,7 +8,6 @@ package wasmer
 // extern uint64_t fn_metering_delegate(char * func_name);
 import "C"
 import (
-	"strings"
 	"unsafe"
 )
 
@@ -705,7 +704,7 @@ const (
 var opCodeMap map[Opcode]uint32 = nil
 
 // 函数预订价
-var functionMap map[string]uint32 = nil
+var FunctionMap map[string]uint32 = nil
 
 //export metering_delegate
 func metering_delegate(op C.wasmer_parser_operator_t) C.uint64_t {
@@ -722,28 +721,27 @@ func metering_delegate(op C.wasmer_parser_operator_t) C.uint64_t {
 func fn_metering_delegate(cStr *C.char) C.uint64_t {
 	goStr := C.GoString(cStr)
 
-	//cost, exists := functionMap[goStr]
-	//if !exists {
-	//	return 0
-	//}
-	//return C.uint64_t(cost)
-
-	// 遍历 functionMap，寻找匹配的 key
-	for key, cost := range functionMap {
-		if strings.Contains(key, ".") {
-			// 完全匹配（如 "fmt.Sprintf" 必须完全等于 key）
-			if goStr == key {
-				return C.uint64_t(cost)
-			}
-		} else {
-			// 前缀匹配（如 "fmt" 匹配 "fmt.Errorf"）
-			if strings.HasPrefix(goStr, key) {
-				return C.uint64_t(cost)
-			}
-		}
+	cost, exists := FunctionMap[goStr]
+	if !exists {
+		return 0
 	}
+	return C.uint64_t(cost)
 
-	return 0 // 无匹配项
+	//// 遍历 functionMap，寻找匹配的 key
+	//for key, cost := range FunctionMap {
+	//	if strings.Contains(key, ".") {
+	//		// 完全匹配（如 "fmt.Sprintf" 必须完全等于 key）
+	//		if goStr == key {
+	//			return C.uint64_t(cost)
+	//		}
+	//	} else {
+	//		// 前缀匹配（如 "fmt" 匹配 "fmt.Errorf"）
+	//		if strings.HasPrefix(goStr, key) {
+	//			return C.uint64_t(cost)
+	//		}
+	//	}
+	//}
+	//return 0
 }
 
 // PushMeteringMiddleware allows the middleware metering to be engaged on a map of opcode to cost
@@ -760,8 +758,8 @@ func (self *Config) PushMeteringMiddleware(maxGasUsageAllowed uint64, opMap map[
 		// REVIEW only allowing this to be set once
 		opCodeMap = opMap
 	}
-	if functionMap == nil {
-		functionMap = fnMap
+	if FunctionMap == nil {
+		FunctionMap = fnMap
 	}
 	cfunction_match := C.CString(function_match)
 	defer C.free(unsafe.Pointer(cfunction_match))

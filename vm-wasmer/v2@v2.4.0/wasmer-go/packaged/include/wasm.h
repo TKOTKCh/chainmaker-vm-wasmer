@@ -142,7 +142,7 @@ WASM_API_EXTERN own wasm_engine_t* wasm_engine_new_with_config(own wasm_config_t
 WASM_DECLARE_OWN(store)
 
 WASM_API_EXTERN own wasm_store_t* wasm_store_new(wasm_engine_t*);
-
+WASM_API_EXTERN own wasm_store_t* wasm_store_clone(wasm_store_t*);
 
 ///////////////////////////////////////////////////////////////////////////////
 // Type Representations

@@ -564,8 +564,9 @@ const (
 // vm pool can grow and shrink on demand
 type vmPool struct {
 	// the corresponding contract info
-	contractId    *commonPb.Contract
-	byteCode      []byte
+	contractId *commonPb.Contract
+	byteCode   []byte
+	// 创建vmpool时，每个pool有一个store作为范本，在创建实例时克隆该store进行具体的调用
 	store         *wasmergo.Store
 	module        *wasmergo.Module
 	initialMemory *wasmergo.Memory
@@ -595,6 +596,8 @@ type wrappedInstance struct {
 	id string
 	// wasmergo instance provided by wasmer
 	wasmInstance *wasmergo.Instance
+	// 每个实例对应一个store，基于vmpool的store进行clone得到
+	store *wasmergo.Store
 	// lastUseTime, unix timestamp in ms
 	lastUseTime int64
 	// createTime, unix timestamp in ms
@@ -672,6 +675,7 @@ func (p *vmPool) CloseInstance(instance *wrappedInstance) {
 			p.log.Errorf("CallDeallocate(...) error: %v", err)
 		}
 		instance.wasmInstance.Close()
+		instance.store.Close()
 		instance = nil
 		p.log.Debugf("instance closed.")
 	}
@@ -799,7 +803,7 @@ func newVmPool(contractId *commonPb.Contract, byteCode []byte, log *logger.CMLog
 		I32AtomicStore16:    1000,
 		I32AtomicStore8:     1000,
 		I32Clz:              105,
-		I32Const:            0,
+		I32Const:            1,
 		I32Ctz:              105,
 		I32Eq:               1,
 		I32Eqz:              1,
@@ -873,7 +877,7 @@ func newVmPool(contractId *commonPb.Contract, byteCode []byte, log *logger.CMLog
 		I8x16Splat:          1000,
 		I8x16Sub:            1000,
 		If:                  0,
-		Loop:                0,
+		Loop:                1,
 		MemoryCopy:          1000,
 		MemoryFill:          1000,
 		MemoryGrow:          1000,
@@ -902,6 +906,7 @@ func newVmPool(contractId *commonPb.Contract, byteCode []byte, log *logger.CMLog
 		V128Or:              1000,
 		V128Store:           1000,
 		V128Xor:             1000,
+		LocalSet:            1,
 	}
 
 
@@ -1145,16 +1150,16 @@ func (p *vmPool) newInstanceFromModule() (*wrappedInstance, error) {
 		instance: nil,
 		memory:   nil,
 	}
-
+	store := wasmergo.CloneStore(p.store)
 	wasiEnv, err := wasmergo.NewWasiStateBuilder("wasi-program").
-		Finalize(p.store.Inner())
+		Finalize(store.Inner())
 	if err != nil {
 		panic(fmt.Sprintf("Error creating WASI environment: %v", err))
 	}
 
-	importObject, err := wasiEnv.GenerateImportObject(p.store, p.module)
+	importObject, err := wasiEnv.GenerateImportObject(store, p.module)
 
-	imports, err := vb.GetImports(p.store, &env, importObject)
+	imports, err := vb.GetImports(store, &env, importObject)
 	if imports == nil && err != nil {
 		return nil, errors.New("get imports failed when new instance from module, because of " + err.Error())
 	}
@@ -1167,7 +1172,7 @@ func (p *vmPool) newInstanceFromModule() (*wrappedInstance, error) {
 		p.log.Debugf("newInstanceFromModule success")
 	}
 
-	err = wasiEnv.Initialize(p.store, wasmInstance)
+	err = wasiEnv.Initialize(store, wasmInstance)
 	if err != nil {
 		return nil, err
 	}
@@ -1186,6 +1191,7 @@ func (p *vmPool) newInstanceFromModule() (*wrappedInstance, error) {
 	instance := &wrappedInstance{
 		id:           uuid.GetUUID(),
 		wasmInstance: wasmInstance,
+		store:        store,
 		lastUseTime:  utils.CurrentTimeMillisSeconds(),
 		createTime:   utils.CurrentTimeMillisSeconds(),
 		errCount:     0,

@@ -37,6 +37,20 @@ func NewStore(engine *Engine) *Store {
 	return self
 }
 
+// 基于已有store clone store
+func CloneStore(store *Store) *Store {
+	self := &Store{
+		_inner: C.wasm_store_clone(store.Inner()),
+		Engine: store.Engine,
+	}
+
+	runtime.SetFinalizer(self, func(self *Store) {
+		self.Close()
+	})
+
+	return self
+}
+
 func (self *Store) inner() *C.wasm_store_t {
 	return self._inner
 }
