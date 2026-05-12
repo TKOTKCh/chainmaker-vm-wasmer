@@ -158,9 +158,7 @@ func (sc *SimContext) callContract(instance *wasmer.Instance, methodName string,
 
 // CallDeallocate deallocate vm memory before closing the instance
 func CallDeallocate(instance *wasmer.Instance) error {
-	// TODO 这里setgaslimit是否会影响gas计量？
-	instance.SetGasLimit(1e19)
-	// TODO 这里deallocate，主要是因为原本做法参数是写在合约实例的全局变量，这里把合约实例的参数argsmap设置为空
+	instance.SetGasLimit(maxGasLimit)
 	deallocFunc, err := instance.Exports.GetFunction(protocol.ContractDeallocateMethod)
 	if err != nil {
 		return err

@@ -66,6 +66,48 @@ func NewInstance(module *Module, imports *ImportObject) (*Instance, error) {
 	return self, nil
 }
 
+// 新增：使用指定store进行实例化，而不是使用固定module.store进行实例化
+func NewInstanceByStore(module *Module, imports *ImportObject, store *Store) (*Instance, error) {
+	var traps *C.wasm_trap_t
+	externs, err := imports.intoInner(module)
+	if err != nil {
+		return nil, err
+	}
+
+	var instance *C.wasm_instance_t
+
+	err2 := maybeNewErrorFromWasmer(func() bool {
+		instance = C.wasm_instance_new(
+			store.Inner(),
+			module.inner(),
+			externs,
+			&traps,
+		)
+
+		return traps == nil && instance == nil
+	})
+
+	if err2 != nil {
+		return nil, err2
+	}
+
+	if traps != nil {
+		return nil, newErrorFromTrap(traps)
+	}
+
+	self := &Instance{
+		_inner:  instance,
+		Exports: newExports(instance, module),
+		imports: imports,
+	}
+
+	runtime.SetFinalizer(self, func(self *Instance) {
+		self.Close()
+	})
+
+	return self, nil
+}
+
 func (self *Instance) inner() *C.wasm_instance_t {
 	return self._inner
 }
@@ -83,6 +125,11 @@ func (self *Instance) MeteringPointsExhausted() bool {
 // SetRemainingPoints imposes a new gas limit on the wasm engine
 func (self *Instance) SetGasLimit(newLimit uint64) {
 	C.wasmer_metering_set_remaining_points(self._inner, C.uint64_t(newLimit))
+}
+
+// SetEarlyExit 中止实例执行，调用instance.SetEarlyExit，让当前实例终止运行
+func (self *Instance) SetEarlyExit() {
+	C.wasmer_metering_set_early_exit(self._inner)
 }
 
 // ReleaseFn is a function to release resources
