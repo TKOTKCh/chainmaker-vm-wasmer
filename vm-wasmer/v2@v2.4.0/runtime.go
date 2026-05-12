@@ -21,6 +21,7 @@ const (
 	InitContractFunc = "init_contract"
 	// UpgradeContractFunc means `upgrade` function name
 	UpgradeContractFunc = "upgrade"
+	maxGasLimit         = 10000000000
 )
 
 // RuntimeInstance wasm runtime
@@ -92,9 +93,13 @@ func (r *RuntimeInstance) Invoke(contract *commonPb.Contract, method string, byt
 	}
 
 	instance := instanceInfo.wasmInstance
-	gasLimit := uint64(1e19)
-	r.log.Debugf("gasLimit:%d", gasLimit-gasUsed)
-	instance.SetGasLimit(gasLimit - gasUsed)
+	gasLimit := uint64(maxGasLimit)
+	r.log.Infof("gasLimit:%d", gasLimit-gasUsed)
+	if gasLimit < gasUsed {
+		instance.SetGasLimit(0)
+	} else {
+		instance.SetGasLimit(gasLimit - gasUsed)
+	}
 
 	var sc = NewSimContext(method, r.log, r.chainId)
 	defer sc.removeCtxPointer()
@@ -122,7 +127,7 @@ func (r *RuntimeInstance) Invoke(contract *commonPb.Contract, method string, byt
 	//注意这里判断条件是有问题的，以前是判断GetGasRemaining<=0，但是gasremaining是uint64无符号，
 	//所以如果gas消耗完，要么是GetGasRemaining=0或GetGasRemaining=uint64的max
 	if gasRemaining <= 0 || gasRemaining == 18446744073709551615 {
-		err = fmt.Errorf("contract invoke failed, out of gas %d, tx: %s", uint64(1e19),
+		err = fmt.Errorf("contract invoke failed, out of gas %d, tx: %s", uint64(gasLimit),
 			txContext.GetTx().Payload.TxId)
 	}
 	gas := gasLimit - gasRemaining
@@ -224,10 +229,15 @@ func (r *RuntimeInstance) InvokeTime(contract *commonPb.Contract, method string,
 	}
 
 	instance := instanceInfo.wasmInstance
-	gasLimit := uint64(1e19)
-	r.log.Debugf("gasLimit:%d", gasLimit-gasUsed)
+	gasLimit := uint64(maxGasLimit)
+	r.log.Infof("gasLimit:%d", gasLimit-gasUsed)
+	if gasLimit < gasUsed {
+		instance.SetGasLimit(0)
+	} else {
+		instance.SetGasLimit(gasLimit - gasUsed)
+	}
 	instance.SetGasLimit(gasLimit - gasUsed)
-	//instance.SetGasLimit(1e19 - gasUsed)
+	//instance.SetGasLimit(maxGasLimit - gasUsed)
 	var sc = NewSimContext(method, r.log, r.chainId)
 	defer sc.removeCtxPointer()
 	sc.Contract = contract
@@ -251,7 +261,7 @@ func (r *RuntimeInstance) InvokeTime(contract *commonPb.Contract, method string,
 	//注意这里判断条件是有问题的，以前是判断GetGasRemaining<=0，但是gasremaining是uint64无符号，
 	//所以如果gas消耗完，要么是GetGasRemaining=0或GetGasRemaining=uint64的max
 	if gasRemaining <= 0 || gasRemaining == 18446744073709551615 {
-		err = fmt.Errorf("contract invoke failed, out of gas %d, tx: %s", uint64(1e19),
+		err = fmt.Errorf("contract invoke failed, out of gas %d, tx: %s", uint64(gasLimit),
 			txContext.GetTx().Payload.TxId)
 	}
 	gas := gasLimit - gasRemaining

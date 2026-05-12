@@ -113,53 +113,6 @@ func (self *Config) inner() *C.wasm_config_t {
 	return self._inner
 }
 
-// UseUniversalEngine sets the engine to Universal in the configuration.
-//
-//	config := NewConfig()
-//	config.UseUniversalEngine()
-//
-// This method might fail if the Universal engine isn't
-// available. Check `IsEngineAvailable` to learn more.
-func (self *Config) UseUniversalEngine() *Config {
-	if !IsEngineAvailable(UNIVERSAL) {
-		panic("This `wasmer-go` version doesn't include the Universal engine; use `IsEngineAvailable(UNIVERSAL)` to avoid this panic")
-	}
-	//注意wasmer在6.0.1版本取消了wasmer_engine_t，universal和dylib合并成一个都是AOT形式，没有JIT，见https://github.com/wasmerio/wasmer/issues/3014
-	//C.wasm_config_set_engine(self.inner(), uint32(C.wasmer_engine_t(UNIVERSAL)))
-
-	return self
-}
-
-// UseDylibEngine sets the engine to Dylib in the configuration.
-//
-//	config := NewConfig()
-//	config.UseDylibEngine()
-//
-// This method might fail if the Dylib engine isn't available. Check
-// `IsEngineAvailable` to learn more.
-func (self *Config) UseDylibEngine() *Config {
-	if !IsEngineAvailable(DYLIB) {
-		panic("This `wasmer-go` version doesn't include the DYLIB engine; use `IsEngineAvailable(DYLIB)` to avoid this panic")
-	}
-	//注意wasmer在6.0.1版本取消了wasmer_engine_t，universal和dylib合并成一个都是AOT形式，没有JIT，见https://github.com/wasmerio/wasmer/issues/3014
-
-	//C.wasm_config_set_engine(self.inner(), uint32(C.wasmer_engine_t(DYLIB)))
-
-	return self
-}
-
-// UseJITEngine is a deprecated method. Please use UseUniversalEngine
-// instead.
-func (self *Config) UseJITEngine() *Config {
-	return self.UseUniversalEngine()
-}
-
-// UseNativeEngine is a deprecated method. Please use
-// UseDylibEngine instead.
-func (self *Config) UseNativeEngine() *Config {
-	return self.UseDylibEngine()
-}
-
 // UseCraneliftCompiler sets the compiler to Cranelift in the configuration.
 //
 //	config := NewConfig()
@@ -848,24 +801,6 @@ func (self *Config) UseLLVMCompiler() *Config {
 	}
 
 	C.wasm_config_set_backend(self.inner(), uint32(C.wasmer_backend_t(LLVM)))
-
-	return self
-}
-
-// UseSinglepassCompiler sets the compiler to Singlepass in the
-// configuration.
-//
-//	config := NewConfig()
-//	config.UseSinglepassCompiler()
-//
-// This method might fail if the Singlepass compiler isn't
-// available. Check `IsCompilerAvailable` to learn more.
-func (self *Config) UseSinglepassCompiler() *Config {
-	if !IsCompilerAvailable(SINGLEPASS) {
-		panic("This `wasmer-go` version doesn't include the Singlepass compiler; use `IsCompilerAvailable(SINGLEPASS)` to avoid this panic")
-	}
-
-	C.wasm_config_set_backend(self.inner(), uint32(C.wasmer_backend_t(SINGLEPASS)))
 
 	return self
 }

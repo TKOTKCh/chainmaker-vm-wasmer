@@ -1974,6 +1974,8 @@ bool wasmer_metering_points_are_exhausted(wasm_instance_t *instance);
 
 void wasmer_metering_set_remaining_points(wasm_instance_t *instance, uint64_t new_limit);
 
+void wasmer_metering_set_early_exit(wasm_instance_t *instance);
+
 void wasmer_module_name(const wasm_module_t *module, wasm_name_t *out);
 
 wasm_module_t *wasmer_module_new(wasm_engine_t *engine, const wasm_byte_vec_t *bytes);

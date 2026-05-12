@@ -566,8 +566,10 @@ type vmPool struct {
 	// the corresponding contract info
 	contractId *commonPb.Contract
 	byteCode   []byte
-	// 创建vmpool时，每个pool有一个store作为范本，在创建实例时克隆该store进行具体的调用
-	store         *wasmergo.Store
+	config     *wasmergo.Config
+	// 创建vmpool时，每个pool有一个engine，本质上是后端编译器配置
+	// 在newInstanceFromModule时，使用该engine创建新的store
+	engine        *wasmergo.Engine
 	module        *wasmergo.Module
 	initialMemory *wasmergo.Memory
 	// wasmergo instance pool
@@ -909,7 +911,7 @@ func newVmPool(contractId *commonPb.Contract, byteCode []byte, log *logger.CMLog
 		LocalSet:            1,
 	}
 
-
+	//函数预订价成本表--测试版
 	fnmap := map[string]uint32{
 		"math":                  1000,
 		"crypto":                1000,
@@ -924,12 +926,16 @@ func newVmPool(contractId *commonPb.Contract, byteCode []byte, log *logger.CMLog
 		"strings.lastIndexFunc": 1000,
 	}
 	config := wasmergo.NewConfig()
+	//支持cranelift编译器和LLVM编译器 默认用Cranelift
+	config.UseCraneliftCompiler()
+	//config.UseLLVMCompiler()
+
 	fmt.Printf("opmap length %d \n", len(opmap))
 
-	config.PushMeteringMiddleware(1e19, opmap, fnmap, "")
+	config.PushMeteringMiddleware(maxGasLimit, opmap, fnmap, "")
 
 	//如果不设置默认上限为256页
-	config.MaxPagesLimit(512)
+	config.MaxPagesLimit(1024 * 10)
 
 	engine := wasmergo.NewEngineWithConfig(config)
 	store := wasmergo.NewStore(engine)
@@ -949,7 +955,7 @@ func newVmPool(contractId *commonPb.Contract, byteCode []byte, log *logger.CMLog
 	vmPool := &vmPool{
 		contractId:      contractId,
 		byteCode:        byteCode,
-		store:           store,
+		engine:          engine,
 		module:          module,
 		instances:       make(chan *wrappedInstance, defaultMaxSize),
 		currentSize:     0,
